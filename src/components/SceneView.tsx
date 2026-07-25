@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { useStore, useView, useVisiblePanels } from '../lib/store'
 import { getDevice } from '../lib/device'
@@ -42,6 +42,8 @@ export function SceneView() {
     fovDiagonalDeg: 47,
   })
 
+  const [glError, setGlError] = useState<string>()
+
   const panels = useVisiblePanels()
   const pose = useStore((s) => s.pose)
   const selectedId = useStore((s) => s.selectedPanelId)
@@ -71,7 +73,24 @@ export function SceneView() {
     scene.fog = new THREE.Fog('#06080c', 14, 34)
 
     const camera = new THREE.PerspectiveCamera(45, 1, 0.05, 200)
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false })
+
+    /*
+     * three.js throws if it cannot get a WebGL context — no GPU, a driver
+     * problem, hardware acceleration switched off, WebGL blocked. Uncaught, that
+     * throw escapes the effect and unmounts the whole app, so a graphics problem
+     * would present as an entirely blank window rather than a missing 3D pane.
+     *
+     * Everything else here is SVG and arithmetic and needs no GPU at all, so the
+     * failure is contained and reported instead.
+     */
+    let renderer: THREE.WebGLRenderer
+    try {
+      renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false })
+    } catch (err) {
+      setGlError(err instanceof Error ? err.message : String(err))
+      return
+    }
+
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     mount.appendChild(renderer.domElement)
     renderer.domElement.style.display = 'block'
@@ -372,6 +391,28 @@ export function SceneView() {
       }
     }
   }, [panels, selectedId, view?.focusedPanelId])
+
+  if (glError) {
+    return (
+      <div className="grid h-full w-full place-items-center bg-ink-950 p-6">
+        <div className="max-w-sm text-center">
+          <p className="text-[13px] text-ink-200">The 3D view needs WebGL</p>
+          <p className="mt-1.5 text-[11.5px] leading-relaxed text-ink-500">
+            This machine could not provide a WebGL context, so the orbital preview is
+            unavailable. Everything else — the through-glasses preview, the optics
+            analysis and every export — is pure geometry and works without it.
+          </p>
+          <p className="mt-2 text-[11.5px] leading-relaxed text-ink-500">
+            Usually fixed by enabling hardware acceleration in your browser, or updating
+            your graphics drivers.
+          </p>
+          <code className="num mt-2 block break-words text-[10.5px] text-ink-600">
+            {glError}
+          </code>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="relative h-full w-full">

@@ -11,6 +11,7 @@ import { BindingsEditor } from './components/BindingsEditor'
 import { ConnectPanel } from './components/ConnectPanel'
 import { ExportPanel } from './components/ExportPanel'
 import { WorkspacePicker } from './components/WorkspacePicker'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { Segmented } from './components/ui'
 import type { PreviewMode } from './lib/store'
 
@@ -24,15 +25,17 @@ const SceneView = lazy(() =>
 
 function ScenePane() {
   return (
-    <Suspense
-      fallback={
-        <div className="grid h-full place-items-center text-[12px] text-ink-600">
-          loading 3D view…
-        </div>
-      }
-    >
-      <SceneView />
-    </Suspense>
+    <ErrorBoundary label="The 3D view">
+      <Suspense
+        fallback={
+          <div className="grid h-full place-items-center text-[12px] text-ink-600">
+            loading 3D view…
+          </div>
+        }
+      >
+        <SceneView />
+      </Suspense>
+    </ErrorBoundary>
   )
 }
 

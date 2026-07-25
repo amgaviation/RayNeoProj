@@ -1,6 +1,8 @@
 node_modules/
 dist/
 .vite/
+desktop/release/
+dist-offline/
 *.local
 .DS_Store
 coverage/

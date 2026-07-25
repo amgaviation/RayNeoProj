@@ -74,7 +74,52 @@ recorded for the companion, and labelled as such.
 **Export.** Profile JSON (re-importable), Unity C#, the bridge ops with their
 SDK calls, a Markdown report, and an `adb` snippet.
 
-## Quick start
+## Download and run on a Mac
+
+Two ways, depending on whether you want an app icon in your dock.
+
+### One file, no install
+
+Grab **[`download/RayNeo-Air4Pro-Configurator.html`](download/RayNeo-Air4Pro-Configurator.html)**
+(use the "Download raw file" button) and double-click it. That is the whole app —
+836 kB of self-contained HTML, no server, no install, no network. It opens in
+Safari or Chrome and works fully offline.
+
+Verified with every network request blocked: it makes none. Your profile is saved
+in the browser's local storage for that file, so keep the file somewhere stable
+rather than in Downloads if you want your workspaces to persist.
+
+### A real macOS app (.dmg)
+
+`.dmg` files can only be built on macOS — creating a disk image needs Apple's own
+tooling — so a **GitHub Actions workflow** builds it on a macOS runner. Go to the
+repo's **Actions** tab → **Build macOS app** → **Run workflow**, and download the
+`rayneo-configurator-macos` artifact when it finishes. It produces both Apple
+Silicon (`arm64`) and Intel (`x64`) builds. Pushing a `v*` tag also attaches them
+to a GitHub Release.
+
+The build is **unsigned** — there is no Apple Developer certificate in CI — so
+Gatekeeper will refuse it the first time. Right-click the app and choose **Open**,
+then confirm. Once only. Or from Terminal:
+
+```bash
+xattr -dr com.apple.quarantine "/Applications/RayNeo Air 4 Pro Configurator.app"
+```
+
+To build the app yourself on your own Mac:
+
+```bash
+npm install && npm run build:offline
+cd desktop && npm install && npm run dist:mac
+# → desktop/release/*.dmg
+```
+
+The Electron wrapper loads the same single HTML file, so the desktop and web
+versions cannot drift apart. It adds the things a browser tab cannot: a proper
+macOS menu bar, remembered window size, and no mixed-content restriction on the
+`ws://` companion bridge.
+
+## Developing
 
 ```bash
 npm install
@@ -124,8 +169,15 @@ src/components/
   SceneView      orbital 3D preview (three.js)
   ...            inspector, device console, views, bindings, export, connect
 companion/       Unity C# for the host side
+desktop/         Electron wrapper + electron-builder config for the macOS app
+download/        the built single-file app (committed, so it can be grabbed directly)
 docs/            optics reasoning, bridge protocol
 ```
+
+`npm run build:offline` regenerates `download/RayNeo-Air4Pro-Configurator.html`.
+It inlines the JS and CSS, folds in the lazy three.js chunk, and fails the build
+if any external reference survives — so a file that claims to be standalone
+always is.
 
 `npm run emit:companion` regenerates `companion/RayNeoWorkspaceApplier.cs` from
 the built-in presets. It is deterministic, so the generated shape is reviewable
@@ -156,6 +208,11 @@ angular size, which is free sharpness. `docs/OPTICS.md` explains why.
   tab cannot see a head nod; the companion has to implement them.
 - Panel *contents* are mock-ups. This tool designs the arrangement — it is not a
   window manager and does not stream real application output.
+- The macOS app is **unsigned**, so first launch needs the right-click → Open
+  step above. Signing it would need a paid Apple Developer certificate.
+- The 3D preview needs WebGL. If it is unavailable the pane says so and
+  everything else keeps working — the other previews, the analysis and all
+  exports are pure geometry with no GPU involved.
 
 ## Reference
 

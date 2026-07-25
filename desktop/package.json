@@ -1,0 +1,82 @@
+{
+  "name": "rayneo-air4pro-configurator-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "macOS app wrapper for the RayNeo Air 4 Pro Workspace Configurator",
+  "main": "main.cjs",
+  "scripts": {
+    "start": "electron .",
+    "dist:mac": "electron-builder --mac --publish never",
+    "dist:mac:arm": "electron-builder --mac --arm64 --publish never",
+    "dist:mac:intel": "electron-builder --mac --x64 --publish never"
+  },
+  "devDependencies": {
+    "electron": "^43.2.0",
+    "electron-builder": "^26.15.3"
+  },
+  "build": {
+    "appId": "com.amgaviation.rayneo.configurator",
+    "productName": "RayNeo Air 4 Pro Configurator",
+    "copyright": "AMG Aviation",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.cjs",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "../download",
+        "to": "app",
+        "filter": [
+          "RayNeo-Air4Pro-Configurator.html"
+        ]
+      }
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "icon": "build/icon.png",
+      "darkModeSupport": true,
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        },
+        {
+          "target": "zip",
+          "arch": [
+            "arm64",
+            "x64"
+          ]
+        }
+      ],
+      "// identity: null": "Builds unsigned on purpose — there is no Apple Developer certificate in CI. Gatekeeper will therefore quarantine the download; the README explains the one-time right-click-Open step.",
+      "identity": null,
+      "extendInfo": {
+        "NSHumanReadableCopyright": "AMG Aviation",
+        "LSApplicationCategoryType": "public.app-category.developer-tools"
+      }
+    },
+    "dmg": {
+      "title": "RayNeo Air 4 Pro Configurator",
+      "contents": [
+        {
+          "x": 140,
+          "y": 210,
+          "type": "file"
+        },
+        {
+          "x": 400,
+          "y": 210,
+          "type": "link",
+          "path": "/Applications"
+        }
+      ]
+    }
+  }
+}

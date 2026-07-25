@@ -1,0 +1,120 @@
+name: Build macOS app
+
+# The .dmg has to be built on macOS — creating a disk image needs Apple's own
+# tooling (hdiutil), so it cannot be cross-compiled from Linux. This runs on
+# GitHub's macOS runners instead.
+#
+# Trigger it from the Actions tab ("Run workflow"), or push a v* tag to also get
+# a GitHub Release with the artifacts attached.
+#
+# Note on cost: macOS runners bill at 10x the Linux rate on private repos. This
+# workflow is manual-only by design — it does not run on every push.
+
+on:
+  workflow_dispatch:
+    inputs:
+      arch:
+        description: Which architectures to build
+        type: choice
+        default: both
+        options: [both, arm64, intel]
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    # arm64 runner. Apple Silicon builds natively; electron-builder fetches the
+    # x64 Electron binary for the Intel target.
+    runs-on: macos-14
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            desktop/package-lock.json
+
+      - name: Install web dependencies
+        run: npm ci
+
+      - name: Check types and run tests
+        # A broken build should fail here, not silently ship in a .dmg.
+        run: |
+          npm run typecheck
+          npm test
+
+      - name: Build the single-file app
+        run: npm run build:offline
+
+      - name: Install desktop dependencies
+        working-directory: desktop
+        run: npm ci
+
+      - name: Package the macOS app
+        working-directory: desktop
+        env:
+          # Unsigned on purpose: there is no Apple Developer certificate in CI.
+          # Skips the signing step rather than failing on a missing identity.
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: |
+          case "${{ inputs.arch || 'both' }}" in
+            arm64) npm run dist:mac:arm ;;
+            intel) npm run dist:mac:intel ;;
+            *)     npm run dist:mac ;;
+          esac
+
+      - name: List what was produced
+        working-directory: desktop
+        run: ls -lh release/*.dmg release/*.zip 2>/dev/null || ls -lhR release
+
+      - name: Upload the macOS app
+        uses: actions/upload-artifact@v4
+        with:
+          name: rayneo-configurator-macos
+          path: |
+            desktop/release/*.dmg
+            desktop/release/*.zip
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload the single-file version
+        uses: actions/upload-artifact@v4
+        with:
+          name: rayneo-configurator-single-file-html
+          path: download/RayNeo-Air4Pro-Configurator.html
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Attach to release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            desktop/release/*.dmg
+            desktop/release/*.zip
+            download/RayNeo-Air4Pro-Configurator.html
+          body: |
+            ## Install
+
+            **macOS app** — download the `.dmg` for your Mac
+            (`arm64` for Apple Silicon, `x64` for Intel), open it, and drag the app
+            to Applications.
+
+            The build is **unsigned**, so Gatekeeper will refuse it on first open.
+            Right-click the app and choose **Open**, then confirm — once only. Or
+            from Terminal:
+
+            ```
+            xattr -dr com.apple.quarantine "/Applications/RayNeo Air 4 Pro Configurator.app"
+            ```
+
+            **No install** — download `RayNeo-Air4Pro-Configurator.html` and
+            double-click it. One self-contained file, works offline in any browser.
