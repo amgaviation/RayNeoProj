@@ -143,6 +143,27 @@ jobs:
             *)     npm run dist:mac ;;
           esac
 
+      - name: Verify every bundle is ad-hoc signed
+        working-directory: desktop
+        # Apple Silicon will not execute arm64 code with no signature at all, and
+        # reports such an app as "damaged and can't be opened" — which is what
+        # shipped the first time. An ad-hoc signature is the minimum that loads,
+        # so assert it rather than trusting the hook ran.
+        run: |
+          shopt -s nullglob
+          found=0
+          for app in release/mac*/*.app; do
+            found=1
+            echo "→ $app"
+            codesign --verify --deep --strict "$app"
+            codesign --display --verbose=2 "$app" 2>&1 | grep -E "Identifier=|Signature=" || true
+            if ! codesign --display --verbose=2 "$app" 2>&1 | grep -q "Signature=adhoc"; then
+              echo "::error::$app is not ad-hoc signed — it would report as 'damaged' on Apple Silicon"
+              exit 1
+            fi
+          done
+          test "$found" -eq 1 || { echo "::error::no .app bundles found to verify"; exit 1; }
+
       - name: List what was produced
         working-directory: desktop
         run: ls -lh release/*.dmg release/*.zip 2>/dev/null || ls -lhR release

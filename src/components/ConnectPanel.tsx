@@ -28,6 +28,8 @@ export function ConnectPanel() {
 
   return (
     <div className="space-y-3">
+      <PlatformReality />
+
       <Card title="Why a companion app is needed">
         <p className="text-[11.5px] leading-relaxed text-ink-400">
           The Air 4 Pro is a display, not a computer. It attaches over USB-C DisplayPort
@@ -178,6 +180,103 @@ export function ConnectPanel() {
           )}
         </div>
       </Card>
+    </div>
+  )
+}
+
+/**
+ * What can and cannot reach the glasses from *this* machine.
+ *
+ * This exists because the constraint used to be buried in prose, and people
+ * reasonably expected a button marked "Connect" to connect. On macOS the answer
+ * is a flat no, and it is not this app's limitation: RayNeo ships no macOS
+ * control software at all. Saying so plainly, on the platform actually being
+ * used, beats a paragraph the user has to infer it from.
+ */
+function PlatformReality() {
+  const platform = detectPlatform()
+
+  return (
+    <Card title="Can this machine control the glasses?">
+      {platform === 'apple' ? (
+        <>
+          <p className="text-[12px] leading-relaxed text-[var(--color-warn)]">
+            On macOS, no — and no app can. There is no software path to the Air 4 Pro's
+            settings from a Mac.
+          </p>
+          <p className="mt-2 text-[11.5px] leading-relaxed text-ink-400">
+            macOS sees the glasses as a plain external monitor over USB-C DisplayPort:
+            no driver, no control API, no access to the head tracker. RayNeo's own
+            desktop software is Windows-only, the RayNeo XR app is phone-only, and the
+            Air SDK this app targets is Android/Unity. The bridge below can only reach a
+            companion running on an Android host — pointing it at your Mac will not find
+            anything.
+          </p>
+          <div className="mt-2.5 space-y-1.5 border-t border-ink-800 pt-2.5">
+            <p className="label">What does change a setting on a Mac</p>
+            <Row what="Brightness" how="The physical buttons on the glasses — 10 steps." />
+            <Row
+              what="3D / XR mode"
+              how="Brightness + volume up together, then confirm in the RayNeo phone app."
+            />
+            <Row
+              what="Refresh rate"
+              how="System Settings → Displays → select the glasses → Refresh Rate."
+            />
+            <Row
+              what="Layout, size, distance"
+              how="Designed here, then applied by a Unity/Android app built from the Export tab."
+            />
+          </div>
+          <p className="mt-2.5 text-[11.5px] leading-relaxed text-ink-500">
+            So on this machine the app is a planner and a code generator: work out the
+            layout, check the optics against the real hardware limits, export it.
+            Everything except live device control is fully functional.
+          </p>
+        </>
+      ) : platform === 'android' ? (
+        <>
+          <p className="text-[12px] leading-relaxed text-[var(--color-good)]">
+            Android is the one host that can. The Air SDK is Android/Unity, so a
+            companion here can make the real calls.
+          </p>
+          <p className="mt-2 text-[11.5px] leading-relaxed text-ink-400">
+            Run the companion from <code className="num text-ink-300">companion/</code>,
+            then connect to it below — or export the Unity applier and build it into your
+            own app.
+          </p>
+        </>
+      ) : (
+        <>
+          <p className="text-[12px] leading-relaxed text-ink-200">Not directly from here.</p>
+          <p className="mt-2 text-[11.5px] leading-relaxed text-ink-400">
+            The Air SDK is Android/Unity, so live control needs a companion running on an
+            Android host — connect to it below. On Windows, RayNeo's own Mirror Studio
+            drives the glasses as a display. Everything else in this app works
+            regardless: design the layout, check the optics, export it.
+          </p>
+        </>
+      )}
+    </Card>
+  )
+}
+
+function detectPlatform(): 'apple' | 'windows' | 'android' | 'other' {
+  if (typeof navigator === 'undefined') return 'other'
+  const s = `${navigator.platform ?? ''} ${navigator.userAgent ?? ''}`
+  // Android must be tested before Apple: Android user agents contain "Linux",
+  // not "Mac", but checking Apple first would still be a needless coin flip.
+  if (/Android/i.test(s)) return 'android'
+  if (/Mac|iPhone|iPad|iPod/i.test(s)) return 'apple'
+  if (/Win/i.test(s)) return 'windows'
+  return 'other'
+}
+
+function Row({ what, how }: { what: string; how: string }) {
+  return (
+    <div className="grid grid-cols-[104px_1fr] gap-2">
+      <span className="text-[11px] leading-snug text-ink-300">{what}</span>
+      <span className="text-[11px] leading-snug text-ink-500">{how}</span>
     </div>
   )
 }

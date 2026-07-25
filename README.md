@@ -8,27 +8,47 @@ Every figure it shows is derived from the published hardware specs — 1920×108
 per eye, 47° diagonal FOV, 120 Hz, HDR10 — and the maths is unit-tested. See
 [`docs/OPTICS.md`](docs/OPTICS.md) for the reasoning.
 
-## Read this first
+## Read this first — this app cannot control your glasses from a Mac
+
+Being blunt about it, because the word "configurator" invites the wrong
+expectation.
 
 **The Air 4 Pro is a display, not a computer.** It attaches over USB-C
-DisplayPort Alt Mode; the host phone, PC or console does all the rendering. The
-settings that live on the glasses — brightness step, IPD, FOV trim, recentre —
-are reached through the RayNeo Air Unity SDK's `NativeModule`, which is
-Android/Unity code running on that host.
+DisplayPort Alt Mode; the host does all the rendering. The settings that live on
+the glasses — brightness step, IPD, FOV trim, recentre — are reached through the
+RayNeo Air Unity SDK's `NativeModule`, which is **Android/Unity code**.
 
-**No browser API can call it.** Not WebHID, not WebUSB, not WebXR. So this app
-does the design and analysis work, and hands the result to something that can:
+**On macOS there is no path to those settings at all — not from this app, and not
+from any app.** macOS sees the glasses as a plain external monitor: no driver, no
+control API, no access to the head tracker. RayNeo's own desktop software
+(Mirror Studio) is Windows-only, and the RayNeo XR app is phone-only. No browser
+API helps either — not WebHID, not WebUSB, not WebXR.
+
+On a Mac, what actually changes a setting:
+
+| Setting | Where |
+|---|---|
+| Brightness | The physical buttons on the glasses — 10 steps |
+| 3D / XR mode | Brightness + volume up together, then confirm in the RayNeo phone app |
+| Refresh rate | System Settings → Displays → the glasses → Refresh Rate |
+| Layout, size, distance | Designed here, then applied by a Unity/Android app from the Export tab |
+
+So **on macOS this is a planner and a code generator**, and that is the honest
+framing: work out the layout, check it against the real optical limits, export
+Unity C# or a JSON profile. Everything except live device control is fully
+functional, and the app tells you which is which — each device control is tagged
+with whether a real SDK call backs it or whether it is host-side.
+
+**Live control is possible, but only from an Android host**, where the Air SDK
+actually runs. Two ways to get there:
 
 - **Export** a Unity `MonoBehaviour` with your workspace compiled in, for a
   project using the RayNeo SDK (`companion/`), or
 - **Connect** to a companion app over a WebSocket and stream changes live as you
   edit.
 
-With no companion attached, everything works against a simulated device. That is
-the default, and the UI labels it as simulated rather than implying a device is
-present. Each control also shows whether a real SDK call backs it or whether it
-is host-side — because refresh rate and stereo mode come from the DisplayPort
-signal, and no amount of UI here changes them.
+With no companion attached, everything runs against a simulated device — the
+default, and labelled as simulated rather than implying hardware is present.
 
 ## What it does
 
@@ -104,13 +124,20 @@ repo's **Actions** tab → **Build macOS app** → **Run workflow**, then downlo
 
 Pushing a `v*` tag also attaches all of them to a GitHub Release.
 
-The build is **unsigned** — there is no Apple Developer certificate in CI — so
-Gatekeeper will refuse it the first time. Right-click the app and choose **Open**,
-then confirm. Once only. Or from Terminal:
+The build is **ad-hoc signed but not notarised** — there is no Apple Developer
+certificate in CI — so Gatekeeper will refuse it the first time. Right-click the
+app and choose **Open**, then confirm. Once only. Or from Terminal:
 
 ```bash
 xattr -dr com.apple.quarantine "/Applications/RayNeo Air 4 Pro Configurator.app"
 ```
+
+> **If macOS says the app is "damaged and can't be opened"**, you have a build
+> from before commit `4ba2c95`. Those were signed with no identity at all, and
+> Apple Silicon will not load unsigned arm64 code — it reports it as damaged
+> rather than untrusted, and right-click → Open cannot help. Download a build
+> from a later run; CI now ad-hoc signs every bundle and fails if a signature is
+> missing.
 
 To build the app yourself on your own Mac:
 
@@ -214,8 +241,11 @@ angular size, which is free sharpness. `docs/OPTICS.md` explains why.
   tab cannot see a head nod; the companion has to implement them.
 - Panel *contents* are mock-ups. This tool designs the arrangement — it is not a
   window manager and does not stream real application output.
-- The macOS app is **unsigned**, so first launch needs the right-click → Open
-  step above. Signing it would need a paid Apple Developer certificate.
+- **No live device control on macOS.** Not a limitation of this app — there is no
+  macOS API for the Air series at all. See the top of this README.
+- The macOS app is **ad-hoc signed, not notarised**, so first launch needs the
+  right-click → Open step above. Proper signing needs a paid Apple Developer
+  certificate.
 - The 3D preview needs WebGL. If it is unavailable the pane says so and
   everything else keeps working — the other previews, the analysis and all
   exports are pure geometry with no GPU involved.
