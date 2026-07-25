@@ -4,7 +4,7 @@ import {
   alreadyPermitted,
   formatReport,
   hidSupported,
-  probeDevice,
+  probeAllPermitted,
   recogniseDevice,
   requestDevice,
   summarise,
@@ -30,6 +30,9 @@ export function HidProbe() {
   const [error, setError] = useState<string>()
   const [notice, setNotice] = useState<string>()
   const [copied, setCopied] = useState(false)
+  // Some glasses stream sensor data only intermittently, so a short window can
+  // miss it. Long is opt-in because it blocks the button for that whole time.
+  const [listenLong, setListenLong] = useState(false)
 
   const supported = hidSupported()
 
@@ -51,14 +54,21 @@ export function HidProbe() {
       if (picked.length === 0) {
         setError(
           scope === 'rayneo'
-            ? `No device matching vendor ${hex(KNOWN_VENDOR_IDS[0] ?? 0)} was offered. That is a result in itself — macOS or the WebHID blocklist is withholding it, since System Information does see the glasses. Try "any device" to check what is on offer.`
+            ? `No device matching vendor ${hex(KNOWN_VENDOR_IDS[0] ?? 0)} was offered. That is a result in itself — macOS or the WebHID blocklist is withholding it, since ioreg confirms the glasses bind as a HID device. Try "any device" to see what is on offer.`
             : 'No device chosen.',
         )
         return
       }
-      const results: HidDeviceInfo[] = []
-      for (const d of picked) results.push(await probeDevice(d))
+      // Probe everything granted so far, not only what was just picked. The
+      // Air 4 Pro exposes two HID nodes and a chooser returns one at a time, so
+      // picking the second should add to the picture rather than replace it.
+      const results = await probeAllPermitted(listenLong ? 10_000 : 1500)
       setDevices(results)
+      if (results.length === 1) {
+        setNotice(
+          'One node probed. ioreg shows the glasses expose two HID nodes, so probe again and pick the other entry — usually one is the frame buttons and the other the vendor-defined interface.',
+        )
+      }
     } catch (e) {
       // A user dismissing the chooser throws; that is not worth an alarm.
       const msg = e instanceof Error ? e.message : String(e)
@@ -114,15 +124,22 @@ export function HidProbe() {
       }
     >
       <p className="text-[11.5px] leading-relaxed text-ink-400">
-        RayNeo ship no macOS software, but that is not the same as the hardware being
-        unreachable. Glasses in this class usually expose a USB HID interface for their
-        MCU and sensors, and those have been reverse-engineered for several brands —
-        including an open-source RayNeo Air 3s Pro driver that uses macOS IOKit HID.
+        <span className="text-[var(--color-good)]">Confirmed on a real Air 4 Pro:</span>{' '}
+        macOS binds these glasses as a HID device —{' '}
+        <span className="num text-ink-300">0x1BBB:0xAF50</span>, two HID nodes, on a
+        12 Mb/s full-speed interface that is far too slow to be carrying video. So the
+        browser route is not closed.
       </p>
       <p className="mt-2 text-[11.5px] leading-relaxed text-ink-400">
-        Whether the <strong className="text-ink-200">Air 4 Pro</strong> does the same, and
-        whether a browser is permitted to open it, is a question about your hardware. So
-        ask it. This is read-only — it enumerates and listens, and never writes.
+        What is still open is whether either node is <em>useful</em>. A{' '}
+        <strong className="text-ink-200">vendor-defined usage page</strong> (0xFF00–0xFFFF)
+        is the MCU and sensor interface — head tracking, display state. A standard
+        consumer-control page would just be the buttons on the frame. Two nodes makes one
+        of each plausible; this probe reports which is which.
+      </p>
+      <p className="mt-2 text-[11.5px] leading-relaxed text-ink-500">
+        Read-only. It enumerates and listens, and never writes — sending speculative bytes
+        to an unknown MCU is how firmware gets bricked.
       </p>
 
       {!supported ? (
@@ -150,6 +167,18 @@ export function HidProbe() {
               </button>
             )}
           </div>
+          <label className="mt-1.5 flex cursor-pointer items-start gap-2">
+            <input
+              type="checkbox"
+              className="mt-0.5 shrink-0"
+              checked={listenLong}
+              onChange={(e) => setListenLong(e.target.checked)}
+            />
+            <span className="text-[11px] leading-snug text-ink-500">
+              Listen for 10 seconds instead of 1.5 — worth trying if nothing streams. Move
+              your head while it runs; sensor data may only appear on motion.
+            </span>
+          </label>
           <p className="mt-1.5 text-[10.5px] leading-snug text-ink-600">
             Plug the glasses in first. The first button filters the chooser to{' '}
             <span className="num">{hex(KNOWN_VENDOR_IDS[0] ?? 0)}</span> (TCL), the vendor

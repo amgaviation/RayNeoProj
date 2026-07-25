@@ -55,19 +55,41 @@ lanes and never appears as a USB data device. So the node macOS enumerated here
 is a **low-bandwidth control interface** — precisely the shape of the MCU/sensor
 endpoints found on other glasses in this class. It is the right thing to probe.
 
-What is still unknown is whether macOS binds it as a **HID** device. System
-Information does not report interface classes. This does:
+### It is a HID device — confirmed
 
-```bash
-# Does the device appear as HID? 7099 is 0x1BBB in decimal, as ioreg prints it.
-ioreg -c IOHIDDevice -r -l | grep -iE 'rayneo|"VendorID" = 7099'
-
-# Full picture: every interface, endpoint, and the driver bound to each.
-ioreg -p IOUSB -w0 -l | grep -A 30 -i rayneo
+```console
+$ ioreg -c IOHIDDevice -r -l | grep -iE 'rayneo|"VendorID" = 7099'
+    |   "VendorID" = 7099
+    |   "Product" = "RayNeo AR Glasses"
+        "Product" = "RayNeo AR Glasses"
+        "VendorID" = 7099
 ```
 
-If the first command prints nothing, macOS is not exposing a HID interface and
-the browser route is closed regardless of what the hardware supports internally.
+macOS binds the glasses as an `IOHIDDevice`, and the two pairs of matches
+indicate **two HID nodes** rather than one. This is the decisive result: it means
+the browser route is not closed. WebHID can open HID interfaces macOS has
+enumerated, subject to its blocklist, so a Mac *can* in principle talk to these
+glasses.
+
+It does not yet mean the useful thing. Two possibilities remain, and they lead to
+very different places:
+
+- **Vendor-defined usage page (`0xFF00`–`0xFFFF`).** The MCU/sensor interface, as
+  found on the XREAL Air and Rokid Max. This is the one worth having — head
+  tracking, and likely display state.
+- **Standard consumer-control usage page.** Just the volume and brightness
+  buttons on the frame presenting as an ordinary HID control device. That would
+  explain the binding while giving no access to anything interesting.
+
+Two nodes makes it plausible that one of each is present. The **usage page** is
+what distinguishes them, and the app's probe reports it directly:
+**Connect → Probe RayNeo glasses**.
+
+Full interface and endpoint detail, if needed:
+
+```bash
+ioreg -p IOUSB -w0 -l | grep -A 30 -i rayneo
+```
 
 ## The unofficial route: USB HID
 

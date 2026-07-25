@@ -162,6 +162,26 @@ export async function alreadyPermitted(): Promise<HidDeviceInfo[]> {
 }
 
 /**
+ * Probe every device this page has been granted, not just the one last picked.
+ *
+ * The Air 4 Pro presents **two** HID nodes (confirmed via ioreg), and a browser
+ * chooser only ever returns the single device the user clicked. Probing the whole
+ * granted set means picking the second node later adds to the picture instead of
+ * replacing the first — which matters, because the two are likely to be a
+ * consumer-control interface and a vendor-defined one, and only the latter is
+ * useful.
+ */
+export async function probeAllPermitted(listenMs = 1500): Promise<HidDeviceInfo[]> {
+  if (!hidSupported()) return []
+  const devices = await navigator.hid.getDevices()
+  const out: HidDeviceInfo[] = []
+  // Sequentially, not in parallel: opening several HID interfaces at once is a
+  // good way to have the OS refuse one of them.
+  for (const d of devices) out.push(await probeDevice(d, listenMs))
+  return out
+}
+
+/**
  * Prompt the user to pick a device.
  *
  * `scope: 'rayneo'` filters the chooser to the known TCL vendor ID, which makes

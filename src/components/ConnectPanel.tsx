@@ -213,11 +213,15 @@ function PlatformReality() {
             Android host — pointing it at your Mac will find nothing.
           </p>
           <p className="mt-2 text-[11.5px] leading-relaxed text-ink-400">
-            There is an <em>unofficial</em> possibility, though. Glasses in this class
-            usually expose a USB HID interface for their MCU and sensors, and those have
-            been reverse-engineered for several brands — including a RayNeo Air 3s Pro
-            driver built on macOS IOKit HID. Whether the Air 4 Pro does the same is
-            untested, so the probe below asks your hardware directly.
+            An <em>unofficial</em> route does exist, though, and it is no longer
+            speculative:{' '}
+            <span className="text-[var(--color-good)]">
+              macOS binds these glasses as a HID device
+            </span>{' '}
+            — confirmed via ioreg on a real Air 4 Pro, two HID nodes at{' '}
+            <span className="num">0x1BBB:0xAF50</span>. Glasses in this class have been
+            reverse-engineered through exactly that interface for several brands. Whether
+            either node carries anything useful is what the probe below determines.
           </p>
           <div className="mt-2.5 space-y-1.5 border-t border-ink-800 pt-2.5">
             <p className="label">What does change a setting on a Mac</p>
