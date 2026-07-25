@@ -81,9 +81,66 @@ very different places:
   buttons on the frame presenting as an ordinary HID control device. That would
   explain the binding while giving no access to anything interesting.
 
-Two nodes makes it plausible that one of each is present. The **usage page** is
-what distinguishes them, and the app's probe reports it directly:
-**Connect → Probe RayNeo glasses**.
+### The interface descriptor — and it is the good one
+
+WebHID on the same machine reports:
+
+```
+## RayNeo AR Glasses
+vendorId: 0x1BBB  productId: 0xAF50
+  collection 0: usagePage=0xFF00 usage=0x01 (vendor-defined)
+    input:  id=0  64B
+    output: id=0  64B
+```
+
+This is the MCU interface, not the frame buttons. Three things say so:
+
+- **`usagePage 0xFF00`, `usage 0x01`** — vendor-defined. A consumer-control
+  interface would report usage page `0x000C`; a keyboard `0x0001`. TCL has
+  defined a private protocol here.
+- **A symmetric 64-byte input *and* output report** — a bidirectional command
+  channel, not a one-way button reporter. 64 bytes is the maximum HID packet at
+  USB full-speed, so the interface is using the whole available frame.
+- **Report ID 0** on both, meaning a single unnumbered report per direction.
+  This is the same shape as the XREAL Air's MCU channel, which is driven with
+  plain HID reads and writes.
+
+So the hardware exposes exactly what would be needed. Two obstacles remain, and
+the second is the serious one.
+
+**The interface did not open.** WebHID enumerated it but `open()` failed. macOS
+guards HID devices, and Chromium maintains a blocklist; either could be
+responsible. Worth noting that in the same report *no* device opened, including
+Apple's own keyboard, which points at a permissions issue on the machine rather
+than something specific to the glasses. Input Monitoring under System Settings →
+Privacy & Security is the usual cause.
+
+**Nothing streams unprompted.** Expected, and not discouraging: the XREAL Air's
+IMU stays silent until `[0x02, 0x19, 0x01]` is written to it. The 64-byte output
+report is presumably how an equivalent command would be sent here.
+
+That second point is where this stops and stays stopped, deliberately. Finding
+the wake-up sequence means writing bytes to an undocumented MCU, and the only
+honest way to do it is with a protocol reference, a device you are willing to
+lose, or a capture of the official Android app talking to the glasses. Guessing
+at 64-byte command frames on someone's hardware is not a reasonable thing to do,
+so this app does not, and the probe has no write path at all.
+
+### Where that leaves it
+
+| Question | Answer |
+|---|---|
+| Does macOS see the glasses? | Yes — `0x1BBB:0xAF50`, full-speed USB |
+| Is there a HID interface? | Yes, two nodes |
+| Is it the MCU, or just buttons? | **MCU** — vendor-defined `0xFF00`, 64B in + 64B out |
+| Can a browser open it? | Not yet — `open()` failed; check Input Monitoring |
+| Is the protocol known? | **No.** This is the blocker |
+
+Native Mac control is therefore **possible but not achievable without protocol
+work**. The path, in order: get the interface to open, capture the official
+Android app's traffic to learn the command format, then implement it as a
+`HidTransport` behind the existing `DeviceBridge` abstraction in
+`src/lib/bridge.ts`.
 
 Full interface and endpoint detail, if needed:
 

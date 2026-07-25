@@ -162,7 +162,23 @@ npm run build:offline</pre></body>`),
     ALLOWED_PERMISSIONS.has(permission),
   )
 
-  wc.session.setDevicePermissionHandler(({ deviceType }) => deviceType === 'hid')
+  /*
+   * Grant only the devices the user actually chose.
+   *
+   * The previous version returned true for every HID device, which was wrong
+   * twice over. It handed the page access to all of the Mac's own hardware —
+   * keyboard, trackpad, backlight, Bluetooth module, eighteen devices in one
+   * real report — and, because a browser chooser omits devices already granted,
+   * it left the picker *empty* when asked to filter for the glasses. The probe
+   * then reported "no device offered" for hardware that was plainly present.
+   */
+  const grantedHid = new Set()
+  const hidKey = (d) => `${d.vendorId}:${d.productId}`
+
+  wc.session.setDevicePermissionHandler((details) => {
+    if (details.deviceType !== 'hid') return false
+    return grantedHid.has(hidKey(details.device))
+  })
 
   wc.on('select-hid-device', (event, details, callback) => {
     event.preventDefault()
@@ -195,7 +211,14 @@ npm run build:offline</pre></body>`),
       noLink: true,
     })
 
-    callback(choice >= 0 && choice < labels.length ? list[choice].deviceId : undefined)
+    if (choice < 0 || choice >= labels.length) {
+      callback(undefined)
+      return
+    }
+    // Remember the choice so setDevicePermissionHandler keeps allowing it, and
+    // so navigator.hid.getDevices() can return it on a later probe.
+    grantedHid.add(hidKey(list[choice]))
+    callback(list[choice].deviceId)
   })
 
   // External links belong in the user's browser, not in a chromeless app window.

@@ -33,6 +33,8 @@ export function HidProbe() {
   // Some glasses stream sensor data only intermittently, so a short window can
   // miss it. Long is opt-in because it blocks the button for that whole time.
   const [listenLong, setListenLong] = useState(false)
+  // A Mac lists 15+ of its own HID devices; default to just the glasses.
+  const [showAll, setShowAll] = useState(false)
 
   const supported = hidSupported()
 
@@ -96,12 +98,14 @@ export function HidProbe() {
   }
 
   const verdict = summarise(devices)
-  const tone =
-    verdict.verdict === 'promising'
-      ? 'var(--color-good)'
-      : verdict.verdict === 'reachable-but-quiet'
-        ? 'var(--color-warn)'
-        : 'var(--color-ink-400)'
+  const tone = {
+    streaming: 'var(--color-good)',
+    openable: 'var(--color-good)',
+    blocked: 'var(--color-warn)',
+    'not-probed': 'var(--color-ink-400)',
+    absent: 'var(--color-ink-400)',
+    unsupported: 'var(--color-warn)',
+  }[verdict.verdict]
 
   return (
     <Card
@@ -202,7 +206,8 @@ export function HidProbe() {
             {verdict.detail}
           </p>
 
-          {devices.map((d, i) => (
+          {(showAll ? devices : devices.filter((d) => recogniseDevice(d.vendorId, d.productId)))
+            .map((d, i) => (
             <div
               key={`${d.vendorId}-${d.productId}-${i}`}
               className="rounded-md border border-ink-800 bg-ink-850 p-2"
@@ -222,10 +227,12 @@ export function HidProbe() {
               )}
 
               <div className="num mt-1 text-[10.5px] leading-relaxed text-ink-500">
-                {d.opened ? (
+                {!d.probed ? (
+                  <span className="text-ink-500">listed, not probed</span>
+                ) : d.opened ? (
                   <span className="text-[var(--color-good)]">opened ok</span>
                 ) : (
-                  <span className="text-[var(--color-warn)]">could not open</span>
+                  <span className="text-[var(--color-warn)]">open failed</span>
                 )}
                 {d.error && <span className="text-[var(--color-danger)]"> · {d.error}</span>}
               </div>
@@ -264,6 +271,17 @@ export function HidProbe() {
               )}
             </div>
           ))}
+
+          {devices.length > devices.filter((d) => recogniseDevice(d.vendorId, d.productId)).length && (
+            <button
+              className="btn btn-sm btn-ghost w-full"
+              onClick={() => setShowAll((v) => !v)}
+            >
+              {showAll
+                ? 'Show only the glasses'
+                : `Show all ${devices.length} HID devices (mostly your Mac's own)`}
+            </button>
+          )}
         </div>
       )}
 

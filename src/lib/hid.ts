@@ -50,6 +50,12 @@ export interface HidDeviceInfo {
   vendorIdHex: string
   productIdHex: string
   collections: HidCollectionInfo[]
+  /**
+   * True only if an open was actually attempted. Devices merely *listed* by
+   * `getDevices()` have never been touched, and reporting those as "could not
+   * open" — or worse, as having opened — is wrong in both directions.
+   */
+  probed: boolean
   opened: boolean
   /** Input reports observed while listening, keyed by report ID. */
   observed: { reportId: number; byteLength: number; count: number; sample: string }[]
@@ -145,6 +151,7 @@ function describeDevice(d: HIDDevice): HidDeviceInfo {
       outputReports: describeReports(c.outputReports),
       featureReports: describeReports(c.featureReports),
     })),
+    probed: false,
     opened: false,
     observed: [],
   }
@@ -240,6 +247,7 @@ export async function probeDevice(
     })
   }
 
+  info.probed = true
   try {
     if (!device.opened) await device.open()
     info.opened = device.opened
@@ -262,9 +270,21 @@ export async function probeDevice(
   return info
 }
 
-/** A verdict, in the terms that actually matter for building on this. */
+/**
+ * A verdict, in the terms that actually matter for building on this.
+ *
+ * Two things this must get right, both learned the hard way from a real report:
+ *
+ * 1. Never claim a device "opened successfully" without checking `opened`. An
+ *    earlier version counted vendor-defined collections and asserted success,
+ *    producing an encouraging verdict for a run in which nothing had been opened
+ *    at all.
+ * 2. Lead with the glasses. A Mac exposes well over a dozen HID devices — its own
+ *    keyboard, trackpad, backlight, Bluetooth module — and an aggregate count
+ *    across all of them says nothing useful about the one device in question.
+ */
 export function summarise(devices: HidDeviceInfo[]): {
-  verdict: 'promising' | 'reachable-but-quiet' | 'nothing' | 'unsupported'
+  verdict: 'streaming' | 'openable' | 'blocked' | 'not-probed' | 'absent' | 'unsupported'
   detail: string
 } {
   if (!hidSupported()) {
@@ -276,34 +296,58 @@ export function summarise(devices: HidDeviceInfo[]): {
   }
   if (devices.length === 0) {
     return {
-      verdict: 'nothing',
+      verdict: 'absent',
       detail:
-        'No device selected yet. Plug the glasses in, press Probe, and pick them from the browser chooser.',
+        'No devices listed yet. Plug the glasses in, press Probe, and pick them from the chooser.',
     }
   }
 
-  const streaming = devices.filter((d) => d.observed.length > 0)
-  const vendor = devices.filter((d) => d.collections.some((c) => c.vendorDefined))
+  const glasses = devices.filter((d) => recogniseDevice(d.vendorId, d.productId))
+  if (glasses.length === 0) {
+    return {
+      verdict: 'absent',
+      detail: `${devices.length} HID device(s) listed, but none is a recognised RayNeo device. Most of these will be your Mac's own hardware. Probe again and pick the entry named "RayNeo AR Glasses".`,
+    }
+  }
+
+  const vendorNodes = glasses.filter((d) =>
+    d.collections.some((c) => c.vendorDefined),
+  )
+  const streaming = glasses.filter((d) => d.observed.length > 0)
+  const opened = glasses.filter((d) => d.opened)
+  const attempted = glasses.filter((d) => d.probed)
 
   if (streaming.length > 0) {
     return {
-      verdict: 'promising',
-      detail: `${streaming.length} device(s) streamed input reports without being asked. That is very likely sensor or button data, and it means live control from this machine is worth building.`,
+      verdict: 'streaming',
+      detail: `The glasses streamed input reports without being asked. That is sensor or button data, and it means live control from this machine is buildable.`,
     }
   }
-  if (vendor.length > 0) {
+
+  if (opened.length > 0) {
     return {
-      verdict: 'reachable-but-quiet',
-      detail: `${vendor.length} device(s) expose a vendor-defined interface that opened successfully, but sent nothing unprompted. Many glasses need a command written to start streaming, so this is still a viable path — it just needs the right wake-up sequence.`,
+      verdict: 'openable',
+      detail: `The glasses opened successfully but sent nothing unprompted. Their interface takes a command first — the XREAL Air needs [0x02, 0x19, 0x01] before its IMU streams — so this is a viable path that needs the right wake-up sequence, which is not something to guess at.`,
     }
   }
-  const opened = devices.filter((d) => d.opened)
+
+  if (attempted.length > 0) {
+    const why = attempted.find((d) => d.error)?.error
+    return {
+      verdict: 'blocked',
+      detail: `The glasses were found${
+        vendorNodes.length > 0 ? ' with a vendor-defined interface' : ''
+      }, but the interface would not open${why ? `: ${why}` : ''}. macOS or the WebHID blocklist is holding it. The descriptor is still useful — see below — but a browser cannot drive it in this state.`,
+    }
+  }
+
   return {
-    verdict: opened.length > 0 ? 'reachable-but-quiet' : 'nothing',
-    detail:
-      opened.length > 0
-        ? 'The device opened but exposes only standard usage pages and sent nothing. Probably the audio or display control interface rather than a sensor one.'
-        : 'The device could not be opened. macOS or the browser blocklist may be claiming it — the shell diagnostic will show the full descriptor.',
+    verdict: 'not-probed',
+    detail: `The glasses are listed${
+      vendorNodes.length > 0
+        ? ' and expose a vendor-defined interface, which is the promising shape'
+        : ''
+    }, but no open has been attempted yet. Press Probe and pick them from the chooser.`,
   }
 }
 
@@ -320,7 +364,11 @@ export function formatReport(devices: HidDeviceInfo[]): string {
   for (const d of devices) {
     lines.push(`## ${d.productName}`)
     lines.push(`vendorId: ${d.vendorIdHex}  productId: ${d.productIdHex}`)
-    lines.push(`opened: ${d.opened}${d.error ? `  error: ${d.error}` : ''}`)
+    lines.push(
+      `state: ${
+        !d.probed ? 'listed, not probed' : d.opened ? 'opened' : 'open failed'
+      }${d.error ? `  (${d.error})` : ''}`,
+    )
     for (const [i, c] of d.collections.entries()) {
       lines.push(
         `  collection ${i}: usagePage=${c.usagePage !== undefined ? hex(c.usagePage) : '?'} usage=${
