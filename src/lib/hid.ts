@@ -57,6 +57,46 @@ export interface HidDeviceInfo {
   error?: string
 }
 
+/**
+ * Confirmed from a real Air 4 Pro on macOS, via System Information.
+ *
+ * `0x1bbb` is T & A Mobile Phones / TCL Communication — RayNeo is TCL's AR
+ * brand, so this is a genuine TCL device ID rather than a generic controller.
+ *
+ * The detail that matters most is the link speed: **12 Mb/s**, i.e. USB
+ * full-speed (1.1). Video cannot travel over that. DisplayPort Alt Mode runs on
+ * separate high-speed lanes, so this enumerated USB node is not the display path
+ * at all — it is a low-bandwidth control interface, which is exactly the shape of
+ * an MCU/sensor endpoint. That makes it the right thing to probe.
+ */
+export const KNOWN_DEVICES = [
+  {
+    vendorId: 0x1bbb,
+    productId: 0xaf50,
+    label: 'RayNeo AR Glasses (Air 4 Pro)',
+    note: 'Confirmed on macOS: VID 0x1BBB (TCL), PID 0xAF50, 12 Mb/s full-speed — a control interface, not the video path.',
+  },
+] as const
+
+/**
+ * Vendor IDs worth filtering the chooser down to.
+ *
+ * Widened to `number[]` deliberately: `as const` on KNOWN_DEVICES narrows the id
+ * to the literal `0x1bbb`, which makes `.includes(someNumber)` a type error.
+ */
+export const KNOWN_VENDOR_IDS: number[] = [
+  ...new Set(KNOWN_DEVICES.map((d) => d.vendorId as number)),
+]
+
+export function recogniseDevice(vendorId: number, productId: number) {
+  return (
+    KNOWN_DEVICES.find((d) => d.vendorId === vendorId && d.productId === productId) ??
+    (KNOWN_VENDOR_IDS.includes(vendorId)
+      ? { vendorId, productId, label: 'RayNeo device (unrecognised model)', note: '' }
+      : undefined)
+  )
+}
+
 /** WebHID is not in every browser, and notably not in Safari. */
 export function hidSupported(): boolean {
   return typeof navigator !== 'undefined' && 'hid' in navigator
@@ -124,13 +164,21 @@ export async function alreadyPermitted(): Promise<HidDeviceInfo[]> {
 /**
  * Prompt the user to pick a device.
  *
- * An empty filter list is intentional: we do not know the Air 4 Pro's IDs, and
- * discovering them is the point. The browser's own chooser is the gate, so the
- * user always sees exactly what they are granting.
+ * `scope: 'rayneo'` filters the chooser to the known TCL vendor ID, which makes
+ * finding the glasses a single click. `'all'` shows everything, which matters for
+ * two reasons: a different model may use a different ID, and — more importantly —
+ * an empty chooser under the vendor filter is itself a result. It means macOS or
+ * the WebHID blocklist is not offering the device, rather than the device not
+ * existing.
+ *
+ * The browser's own chooser is always the gate, so the user sees exactly what
+ * they are granting either way.
  */
-export async function requestDevice(): Promise<HIDDevice[]> {
+export async function requestDevice(scope: 'rayneo' | 'all' = 'all'): Promise<HIDDevice[]> {
   if (!hidSupported()) throw new Error('WebHID is not available in this browser')
-  return navigator.hid.requestDevice({ filters: [] })
+  const filters =
+    scope === 'rayneo' ? KNOWN_VENDOR_IDS.map((vendorId) => ({ vendorId })) : []
+  return navigator.hid.requestDevice({ filters })
 }
 
 /**

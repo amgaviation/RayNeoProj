@@ -1,14 +1,19 @@
 import { useEffect, useState } from 'react'
 import {
+  KNOWN_VENDOR_IDS,
   alreadyPermitted,
   formatReport,
   hidSupported,
   probeDevice,
+  recogniseDevice,
   requestDevice,
   summarise,
   type HidDeviceInfo,
 } from '../lib/hid'
+import { copyText, downloadText } from '../lib/clipboard'
 import { Card } from './ui'
+
+const hex = (n: number) => `0x${n.toString(16).padStart(4, '0').toUpperCase()}`
 
 /**
  * USB probe.
@@ -23,6 +28,7 @@ export function HidProbe() {
   const [devices, setDevices] = useState<HidDeviceInfo[]>([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string>()
+  const [notice, setNotice] = useState<string>()
   const [copied, setCopied] = useState(false)
 
   const supported = hidSupported()
@@ -36,13 +42,18 @@ export function HidProbe() {
     })
   }, [supported])
 
-  const probe = async () => {
+  const probe = async (scope: 'rayneo' | 'all') => {
     setError(undefined)
+    setNotice(undefined)
     setBusy(true)
     try {
-      const picked = await requestDevice()
+      const picked = await requestDevice(scope)
       if (picked.length === 0) {
-        setError('No device chosen.')
+        setError(
+          scope === 'rayneo'
+            ? `No device matching vendor ${hex(KNOWN_VENDOR_IDS[0] ?? 0)} was offered. That is a result in itself — macOS or the WebHID blocklist is withholding it, since System Information does see the glasses. Try "any device" to check what is on offer.`
+            : 'No device chosen.',
+        )
         return
       }
       const results: HidDeviceInfo[] = []
@@ -55,6 +66,23 @@ export function HidProbe() {
     } finally {
       setBusy(false)
     }
+  }
+
+  const onCopy = async () => {
+    const report = formatReport(devices)
+    const result = await copyText(report)
+    if (result.ok) {
+      setCopied(true)
+      setError(undefined)
+      setTimeout(() => setCopied(false), 1400)
+      return
+    }
+    // Copying can fail for reasons the user cannot act on, so save the file
+    // instead rather than leaving them stuck with an error.
+    downloadText('rayneo-hid-probe.txt', report)
+    setNotice(
+      `Clipboard was blocked (${result.reason}) so the report was downloaded as rayneo-hid-probe.txt instead.`,
+    )
   }
 
   const verdict = summarise(devices)
@@ -70,20 +98,18 @@ export function HidProbe() {
       title="Probe the USB connection"
       right={
         devices.length > 0 ? (
-          <button
-            className="btn btn-sm"
-            onClick={async () => {
-              try {
-                await navigator.clipboard.writeText(formatReport(devices))
-                setCopied(true)
-                setTimeout(() => setCopied(false), 1400)
-              } catch {
-                setError('Clipboard access was refused.')
-              }
-            }}
-          >
-            {copied ? 'Copied' : 'Copy report'}
-          </button>
+          <div className="flex gap-1.5">
+            <button className="btn btn-sm" onClick={onCopy}>
+              {copied ? 'Copied' : 'Copy'}
+            </button>
+            <button
+              className="btn btn-sm"
+              onClick={() => downloadText('rayneo-hid-probe.txt', formatReport(devices))}
+              title="Save the probe report as a file — always works, even where the clipboard is blocked"
+            >
+              Save
+            </button>
+          </div>
         ) : undefined
       }
     >
@@ -107,8 +133,16 @@ export function HidProbe() {
       ) : (
         <>
           <div className="mt-2.5 flex gap-1.5">
-            <button className="btn btn-primary flex-1" onClick={probe} disabled={busy}>
-              {busy ? 'Probing…' : 'Probe for the glasses'}
+            <button
+              className="btn btn-primary flex-1"
+              onClick={() => probe('rayneo')}
+              disabled={busy}
+              title={`Filters the chooser to vendor ${hex(KNOWN_VENDOR_IDS[0] ?? 0)} (TCL)`}
+            >
+              {busy ? 'Probing…' : 'Probe RayNeo glasses'}
+            </button>
+            <button className="btn" onClick={() => probe('all')} disabled={busy}>
+              Any device
             </button>
             {devices.length > 0 && (
               <button className="btn" onClick={() => setDevices([])}>
@@ -117,15 +151,20 @@ export function HidProbe() {
             )}
           </div>
           <p className="mt-1.5 text-[10.5px] leading-snug text-ink-600">
-            Plug the glasses in first. The browser will ask which device to allow — pick
-            anything that looks like the glasses. If several appear, probe each: they
-            usually present separate interfaces for audio, display control and sensors.
+            Plug the glasses in first. The first button filters the chooser to{' '}
+            <span className="num">{hex(KNOWN_VENDOR_IDS[0] ?? 0)}</span> (TCL), the vendor
+            confirmed on a real Air 4 Pro. If nothing is offered, that is informative in
+            itself — try "any device" to see the full list, since glasses often present
+            separate interfaces for audio, display control and sensors.
           </p>
         </>
       )}
 
       {error && (
-        <p className="mt-2 text-[11px] text-[var(--color-danger)]">{error}</p>
+        <p className="mt-2 text-[11px] leading-snug text-[var(--color-danger)]">{error}</p>
+      )}
+      {notice && (
+        <p className="mt-2 text-[11px] leading-snug text-[var(--color-warn)]">{notice}</p>
       )}
 
       {devices.length > 0 && (
@@ -147,6 +186,11 @@ export function HidProbe() {
                   {d.vendorIdHex}:{d.productIdHex}
                 </span>
               </div>
+              {recogniseDevice(d.vendorId, d.productId) && (
+                <p className="mt-0.5 text-[10.5px] leading-snug text-[var(--color-accent)]">
+                  Recognised — {recogniseDevice(d.vendorId, d.productId)!.label}
+                </p>
+              )}
 
               <div className="num mt-1 text-[10.5px] leading-relaxed text-ink-500">
                 {d.opened ? (
@@ -196,19 +240,39 @@ export function HidProbe() {
 
       <details className="mt-3 border-t border-ink-800 pt-2.5">
         <summary className="cursor-pointer text-[11.5px] text-ink-300">
-          Full descriptor from Terminal (shows what the browser cannot)
+          What Terminal shows that the browser cannot
         </summary>
+
         <p className="mt-1.5 text-[11px] leading-relaxed text-ink-500">
-          WebHID only reveals interfaces it is allowed to open. For everything the Mac
-          sees — every interface, endpoint and its driver — run:
+          Already established on a real Air 4 Pro:{' '}
+          <span className="num text-ink-300">0x1BBB:0xAF50</span> at{' '}
+          <span className="num text-ink-300">12 Mb/s</span>. That speed is USB full-speed,
+          which cannot carry video — DisplayPort runs on separate high-speed lanes. So this
+          node is a low-bandwidth control interface, exactly where an MCU or sensor
+          endpoint would live.
+        </p>
+
+        <p className="mt-2 text-[11px] leading-relaxed text-ink-500">
+          The open question is whether macOS binds it as a <em>HID</em> device, which
+          System Information does not show. This does — if the glasses appear, they have a
+          HID interface:
         </p>
         <pre className="num mt-1.5 overflow-x-auto rounded-md border border-ink-800 bg-ink-950 p-2 text-[10.5px] leading-relaxed text-ink-300">
-          system_profiler SPUSBDataType
+          {'ioreg -c IOHIDDevice -r -l | grep -iE \'rayneo|"VendorID" = 7099\''}
+        </pre>
+        <p className="mt-1 text-[10.5px] leading-snug text-ink-600">
+          7099 is 0x1BBB in decimal, which is how ioreg prints it.
+        </p>
+
+        <p className="mt-2 text-[11px] leading-relaxed text-ink-500">
+          And for the full picture — every interface, endpoint and the driver bound to each:
+        </p>
+        <pre className="num mt-1.5 overflow-x-auto rounded-md border border-ink-800 bg-ink-950 p-2 text-[10.5px] leading-relaxed text-ink-300">
+          {'ioreg -p IOUSB -w0 -l | grep -A 30 -i rayneo'}
         </pre>
         <p className="mt-1.5 text-[11px] leading-relaxed text-ink-500">
-          Look for the glasses under whichever USB bus they are on. The useful details are
-          the vendor and product IDs, and whether any interface is listed as HID rather
-          than only audio or video. Paste that alongside the copied report above.
+          No output from the first command means macOS is not exposing a HID interface,
+          which would close the browser route regardless of what the hardware supports.
         </p>
       </details>
     </Card>

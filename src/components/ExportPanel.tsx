@@ -10,6 +10,7 @@ import {
   unityApplier,
   workspaceReport,
 } from '../lib/exporters'
+import { copyText } from '../lib/clipboard'
 import { Card, Segmented } from './ui'
 
 type Target = 'json' | 'unity' | 'bridge' | 'report' | 'adb'
@@ -139,13 +140,21 @@ export function ExportPanel() {
             <button
               className="btn btn-sm"
               onClick={async () => {
-                try {
-                  await navigator.clipboard.writeText(content)
+                const result = await copyText(content)
+                if (result.ok) {
                   setCopied(true)
+                  setError(undefined)
                   setTimeout(() => setCopied(false), 1400)
-                } catch {
-                  setError('Clipboard access was refused by the browser.')
+                  return
                 }
+                // Clipboard access can be blocked for reasons the user cannot
+                // act on — a file:// origin, an unfocused document, a denied
+                // permission. Saving the file is always available, so do that
+                // rather than leaving them with a dead end.
+                download(filename, content, spec.mime)
+                setError(
+                  `Clipboard was blocked (${result.reason}) so ${filename} was downloaded instead.`,
+                )
               }}
             >
               {copied ? 'Copied' : 'Copy'}

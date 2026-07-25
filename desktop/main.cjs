@@ -144,10 +144,23 @@ npm run build:offline</pre></body>`),
    */
   const wc = mainWindow.webContents
 
+  // Narrow allow-list rather than a blanket grant. Note that clipboard writes
+  // must be included: denying everything but 'hid' made every Copy button in the
+  // app fail with "clipboard access denied", which is how the USB probe report
+  // became impossible to get out of the desktop build.
+  const ALLOWED_PERMISSIONS = new Set([
+    'hid',
+    'clipboard-write',
+    'clipboard-sanitized-write',
+  ])
+
   wc.session.setPermissionRequestHandler((_contents, permission, callback) => {
-    // The app needs nothing else; granting only HID keeps the surface minimal.
-    callback(permission === 'hid')
+    callback(ALLOWED_PERMISSIONS.has(permission))
   })
+
+  wc.session.setPermissionCheckHandler((_contents, permission) =>
+    ALLOWED_PERMISSIONS.has(permission),
+  )
 
   wc.session.setDevicePermissionHandler(({ deviceType }) => deviceType === 'hid')
 

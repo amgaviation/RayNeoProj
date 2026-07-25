@@ -30,6 +30,45 @@ On a Mac, settings change through the hardware or the phone:
 That is why this app's device console is honest about which controls map to a
 real SDK call: on macOS, none of them can fire, because the SDK is not there.
 
+## Confirmed on real hardware
+
+From System Information on a MacBook Air with an Air 4 Pro attached:
+
+| | |
+|---|---|
+| Device name | RayNeo AR Glasses |
+| USB Vendor ID | `0x1BBB` — T & A Mobile Phones / TCL Communication |
+| USB Product ID | `0xAF50` |
+| Link speed | **12 Mb/s** |
+| Connection | Removable, on a built-in USB 3.1 bus |
+| Driver (bus) | `AppleT8112USBXHCI` |
+
+Two things follow from this.
+
+**The vendor ID is genuine TCL.** `0x1BBB` is registered to T & A Mobile Phones,
+TCL's mobile division, and RayNeo is TCL's AR brand. This is the manufacturer's
+own ID, not a generic USB controller — so the interface is theirs to define.
+
+**12 Mb/s means this is not the display.** That is USB full-speed (1.1), which
+cannot carry 1920×1080. DisplayPort Alt Mode travels on separate high-speed
+lanes and never appears as a USB data device. So the node macOS enumerated here
+is a **low-bandwidth control interface** — precisely the shape of the MCU/sensor
+endpoints found on other glasses in this class. It is the right thing to probe.
+
+What is still unknown is whether macOS binds it as a **HID** device. System
+Information does not report interface classes. This does:
+
+```bash
+# Does the device appear as HID? 7099 is 0x1BBB in decimal, as ioreg prints it.
+ioreg -c IOHIDDevice -r -l | grep -iE 'rayneo|"VendorID" = 7099'
+
+# Full picture: every interface, endpoint, and the driver bound to each.
+ioreg -p IOUSB -w0 -l | grep -A 30 -i rayneo
+```
+
+If the first command prints nothing, macOS is not exposing a HID interface and
+the browser route is closed regardless of what the hardware supports internally.
+
 ## The unofficial route: USB HID
 
 Established facts:
