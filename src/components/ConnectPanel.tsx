@@ -1,0 +1,183 @@
+import { useState } from 'react'
+import { useStore } from '../lib/store'
+import { DEFAULT_BRIDGE_PORT, SDK_MAPPING } from '../lib/bridge'
+import { Card, Toggle } from './ui'
+
+/**
+ * Companion connection.
+ *
+ * The honest framing lives here: the browser cannot reach the glasses directly,
+ * so either a companion app is listening or everything is simulated. Both states
+ * are useful; conflating them is not.
+ */
+export function ConnectPanel() {
+  const connection = useStore((s) => s.connection)
+  const detail = useStore((s) => s.connectionDetail)
+  const connect = useStore((s) => s.connect)
+  const disconnect = useStore((s) => s.disconnect)
+  const pushAll = useStore((s) => s.pushAll)
+  const log = useStore((s) => s.log)
+  const followPose = useStore((s) => s.followPose)
+  const setFollowPose = useStore((s) => s.setFollowPose)
+  const pose = useStore((s) => s.pose)
+
+  const [host, setHost] = useState('192.168.1.50')
+  const [port, setPort] = useState(DEFAULT_BRIDGE_PORT)
+
+  const live = connection === 'connected'
+
+  return (
+    <div className="space-y-3">
+      <Card title="Why a companion app is needed">
+        <p className="text-[11.5px] leading-relaxed text-ink-400">
+          The Air 4 Pro is a display, not a computer. It attaches over USB-C DisplayPort
+          and the host — your phone, PC or console — does all the rendering. The settings
+          that live on the glasses are reached through the RayNeo Air SDK's{' '}
+          <code className="num text-ink-300">NativeModule</code>, which is Android/Unity
+          code on that host. No browser API can call it.
+        </p>
+        <p className="mt-2 text-[11.5px] leading-relaxed text-ink-400">
+          So this app edits and analyses, then hands the result to a small companion that
+          makes the SDK calls. Point it at one below, or export a profile from the Export
+          tab. Everything works without a companion — it is just simulated, and labelled
+          that way.
+        </p>
+      </Card>
+
+      <Card
+        title="Bridge"
+        right={
+          <span
+            className="chip"
+            style={{
+              borderColor: live
+                ? 'var(--color-good)'
+                : connection === 'error'
+                  ? 'var(--color-danger)'
+                  : undefined,
+              color: live
+                ? 'var(--color-good)'
+                : connection === 'error'
+                  ? 'var(--color-danger)'
+                  : undefined,
+            }}
+          >
+            {connection}
+          </span>
+        }
+      >
+        <div className="space-y-3">
+          <div className="grid grid-cols-[1fr_84px] gap-2">
+            <label className="block">
+              <span className="label">Companion host</span>
+              <input
+                className="input num mt-1"
+                value={host}
+                onChange={(e) => setHost(e.target.value)}
+                placeholder="192.168.1.50"
+              />
+            </label>
+            <label className="block">
+              <span className="label">Port</span>
+              <input
+                className="input num mt-1"
+                type="number"
+                value={port}
+                onChange={(e) => setPort(Number(e.target.value))}
+              />
+            </label>
+          </div>
+
+          <div className="flex gap-1.5">
+            <button
+              className="btn btn-primary flex-1"
+              onClick={() => connect(host, port)}
+              disabled={connection === 'connecting'}
+            >
+              {connection === 'connecting' ? 'Connecting…' : 'Connect'}
+            </button>
+            <button className="btn" onClick={disconnect} disabled={!live && connection !== 'error'}>
+              Simulate
+            </button>
+            <button className="btn" onClick={pushAll} title="Send the whole profile now">
+              Push all
+            </button>
+          </div>
+
+          {detail && <p className="text-[11px] text-ink-500">{detail}</p>}
+
+          {connection === 'error' && (
+            <p className="text-[11px] leading-snug text-[var(--color-warn)]">
+              Could not reach the companion. Browsers do not report why a WebSocket
+              handshake failed, so check that the companion is running, that the host and
+              port are right, and that both devices are on the same network. Note that a
+              page served over HTTPS cannot open a plain <code>ws://</code> socket — run
+              this app over HTTP for local bridging.
+            </p>
+          )}
+
+          <div className="border-t border-ink-800 pt-3">
+            <Toggle
+              label="Mirror head motion in the previews"
+              checked={followPose}
+              onChange={setFollowPose}
+              hint={
+                live
+                  ? 'Using live pose from the glasses tracker.'
+                  : 'Using simulated drift so the previews are not frozen.'
+              }
+            />
+            <p className="num mt-1.5 text-[11px] text-ink-500">
+              yaw {pose.yawDeg >= 0 ? '+' : ''}
+              {pose.yawDeg.toFixed(2)}° · pitch {pose.pitchDeg >= 0 ? '+' : ''}
+              {pose.pitchDeg.toFixed(2)}° · roll {pose.rollDeg >= 0 ? '+' : ''}
+              {pose.rollDeg.toFixed(2)}°
+            </p>
+          </div>
+        </div>
+      </Card>
+
+      <Card title="SDK surface" bodyClass="p-2">
+        <div className="space-y-1">
+          {Object.entries(SDK_MAPPING).map(([op, m]) => (
+            <div key={op} className="rounded-md border border-ink-800 bg-ink-850 px-2 py-1.5">
+              <div className="flex items-center gap-1.5">
+                <span
+                  className="h-1.5 w-1.5 shrink-0 rounded-full"
+                  style={{
+                    background: m.native ? 'var(--color-good)' : 'var(--color-warn)',
+                  }}
+                />
+                <code className="num text-[11.5px] text-ink-200">{op}</code>
+              </div>
+              {m.native && (
+                <code className="num mt-0.5 block break-all text-[10.5px] text-[var(--color-accent)]">
+                  {m.call}
+                </code>
+              )}
+              <p className="mt-0.5 text-[10.5px] leading-snug text-ink-500">{m.note}</p>
+            </div>
+          ))}
+        </div>
+        <p className="mt-2 px-1 text-[10.5px] leading-snug text-ink-600">
+          Green means a documented SDK call backs it. Amber means the companion or the host
+          display pipeline handles it — the profile records the intent either way.
+        </p>
+      </Card>
+
+      <Card title="Log" bodyClass="p-2">
+        <div className="num max-h-52 overflow-auto text-[10.5px] leading-relaxed text-ink-500">
+          {log.length === 0 ? (
+            <p className="px-1 py-2 text-center">Nothing sent yet.</p>
+          ) : (
+            [...log].reverse().map((l, i) => (
+              <div key={`${i}-${l}`} className="border-b border-ink-900 px-1 py-0.5">
+                {l}
+              </div>
+            ))
+          )}
+        </div>
+      </Card>
+    </div>
+  )
+}
