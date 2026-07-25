@@ -67,6 +67,18 @@ jobs:
           echo "single-file build: $size bytes"
           test "$size" -gt 300000 || { echo "suspiciously small"; exit 1; }
 
+      - name: Check the generated Unity reference is current
+        # companion/RayNeoWorkspaceApplier.cs is committed so the generated shape
+        # is reviewable in a diff, and the emitter is deterministic — so any
+        # difference here means the exporter changed without the reference being
+        # regenerated. Run `npm run emit:companion` to fix.
+        run: |
+          npm run emit:companion
+          git diff --exit-code -- companion/ || {
+            echo "::error::companion/ is stale — run 'npm run emit:companion' and commit the result"
+            exit 1
+          }
+
       - name: Install desktop dependencies
         working-directory: desktop
         run: npm ci

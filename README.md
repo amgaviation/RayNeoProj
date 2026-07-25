@@ -93,10 +93,16 @@ rather than in Downloads if you want your workspaces to persist.
 
 `.dmg` files can only be built on macOS — creating a disk image needs Apple's own
 tooling — so a **GitHub Actions workflow** builds it on a macOS runner. Go to the
-repo's **Actions** tab → **Build macOS app** → **Run workflow**, and download the
-`rayneo-configurator-macos` artifact when it finishes. It produces both Apple
-Silicon (`arm64`) and Intel (`x64`) builds. Pushing a `v*` tag also attaches them
-to a GitHub Release.
+repo's **Actions** tab → **Build macOS app** → **Run workflow**, then download the
+`rayneo-configurator-macos` artifact when it finishes (~2 minutes). Inside:
+
+| File | For |
+|---|---|
+| `RayNeo Air 4 Pro Configurator-0.1.0-arm64.dmg` | Apple Silicon (M1 and later) |
+| `RayNeo Air 4 Pro Configurator-0.1.0.dmg` | Intel Macs |
+| `…-arm64-mac.zip` / `…-mac.zip` | the same app, unwrapped |
+
+Pushing a `v*` tag also attaches all of them to a GitHub Release.
 
 The build is **unsigned** — there is no Apple Developer certificate in CI — so
 Gatekeeper will refuse it the first time. Right-click the app and choose **Open**,
