@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
   ACUITY_PPD_2020,
+  COMFORT,
   analysePanel,
+  auditPanel,
+  maxSpreadForFullVisibility,
   angularSizeDeg,
   devicePpd,
   diagonalForAngularWidth,
@@ -206,6 +209,120 @@ describe('analysePanel', () => {
     const big = analysePanel(panel({ distanceM: 4, diagonalIn: 140 }), air4)
     const small = analysePanel(panel({ distanceM: 4, diagonalIn: 70 }), air4)
     expect(small.minLegibleTextPx).toBeGreaterThan(big.minLegibleTextPx)
+  })
+})
+
+describe('visibility at rest', () => {
+  const fov = splitFov(47, 16 / 9)
+  const halfH = fov.horizontalDeg / 2
+
+  it('reports a straight-ahead panel that fits as fully visible', () => {
+    const a = analysePanel(panel({ yawDeg: 0, distanceM: 4, diagonalIn: 107 }), air4)
+    expect(a.visibleFractionAtRest).toBeCloseTo(1, 6)
+    expect(a.centreOutsideFov).toBe(false)
+  })
+
+  it('catches the case a 30-degree yaw check misses', () => {
+    // The Desk preset's side panels: 22 deg wide, centred at 29 deg. Under the
+    // comfortable-yaw threshold of 30, so the old check stayed silent — while the
+    // panel is almost entirely outside the ~20.8 deg you can actually see.
+    const a = analysePanel(
+      panel({ yawDeg: -29, distanceM: 4, diagonalIn: 70 }),
+      air4,
+    )
+    expect(Math.abs(-29)).toBeLessThan(COMFORT.comfortableYawDeg)
+    expect(a.centreOutsideFov).toBe(true)
+    expect(a.visibleFractionAtRest).toBeLessThan(0.2)
+
+    const advisories = auditPanel(
+      panel({ id: 'side', title: 'Reference', yawDeg: -29, distanceM: 4, diagonalIn: 70 }),
+      air4,
+    )
+    const flagged = advisories.find((x) => x.id === 'side:unreachable')
+    expect(flagged).toBeDefined()
+    expect(flagged!.severity).toBe('warn')
+  })
+
+  it('treats a head-locked panel outside the FOV as an error, not a warning', () => {
+    // A body- or world-anchored panel comes into view when you turn. A
+    // head-locked one never does, so it is permanently invisible.
+    const advisories = auditPanel(
+      panel({
+        id: 'hud',
+        title: 'HUD',
+        yawDeg: 35,
+        distanceM: 4,
+        diagonalIn: 40,
+        anchor: 'head',
+      }),
+      air4,
+    )
+    const flagged = advisories.find((x) => x.id === 'hud:unreachable')
+    expect(flagged?.severity).toBe('error')
+    expect(flagged?.detail).toMatch(/never come into view/)
+  })
+
+  it('flags a partially clipped panel without calling it unreachable', () => {
+    // Centre in view, edges not: a panel wider than the FOV, centred.
+    const d = 4
+    const a = analysePanel(
+      panel({ yawDeg: 0, distanceM: d, diagonalIn: fovFillingDiagonalIn(air4, d) * 1.4 }),
+      air4,
+    )
+    expect(a.centreOutsideFov).toBe(false)
+    expect(a.visibleFractionAtRest).toBeLessThan(0.9)
+  })
+
+  it('accounts for pitch as well as yaw', () => {
+    // The Flight deck instrument strip: 20 deg below eye line, outside the
+    // +/-12 deg vertical FOV.
+    const a = analysePanel(panel({ pitchDeg: -20, distanceM: 3.5, diagonalIn: 60 }), air4)
+    expect(a.centreOutsideFov).toBe(true)
+  })
+
+  it('goes to zero for a panel entirely outside the view', () => {
+    const a = analysePanel(panel({ yawDeg: 80, distanceM: 4, diagonalIn: 70 }), air4)
+    expect(a.visibleFractionAtRest).toBe(0)
+  })
+
+  it('is consistent with the FOV half-width boundary', () => {
+    const justInside = analysePanel(
+      panel({ yawDeg: halfH - 0.5, distanceM: 4, diagonalIn: 70 }),
+      air4,
+    )
+    const justOutside = analysePanel(
+      panel({ yawDeg: halfH + 0.5, distanceM: 4, diagonalIn: 70 }),
+      air4,
+    )
+    expect(justInside.centreOutsideFov).toBe(false)
+    expect(justOutside.centreOutsideFov).toBe(true)
+  })
+})
+
+describe('maxSpreadForFullVisibility', () => {
+  it('is well under the 90 degree default for three panels', () => {
+    // The headline finding: the default spread puts the outer panels more than
+    // twice as far out as you can see.
+    const s = maxSpreadForFullVisibility(3, air4, 2)
+    expect(s).toBeGreaterThan(30)
+    expect(s).toBeLessThan(35)
+    expect(s).toBeLessThan(90)
+  })
+
+  it('produces a spread where the arc layout leaves everything in view', () => {
+    const gap = 2
+    for (const n of [2, 3, 4, 5]) {
+      const spread = maxSpreadForFullVisibility(n, air4, gap)
+      const w = spread / n - gap
+      const outermost = spread / 2
+      const halfFov = splitFov(47, 16 / 9).horizontalDeg / 2
+      // Outer edge of the outermost panel must land inside the FOV.
+      expect(outermost + w / 2).toBeLessThanOrEqual(halfFov + 1e-9)
+    }
+  })
+
+  it('returns zero for a single panel, which needs no spread', () => {
+    expect(maxSpreadForFullVisibility(1, air4, 2)).toBe(0)
   })
 })
 

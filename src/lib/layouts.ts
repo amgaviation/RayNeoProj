@@ -14,6 +14,7 @@ import {
   clamp,
   devicePpd,
   diagonalForAngularWidth,
+  matchedSourceResolution,
 } from './optics'
 import type { DeviceProfile } from './types'
 
@@ -316,7 +317,24 @@ export function applyLayout(
     // Toe-in turns each panel to face the wearer rather than leaving it
     // parallel to the straight-ahead plane. Without it, off-axis panels are
     // seen at a slant: the far edge is foreshortened and reads blurrier.
-    return { ...p, ...u, faceWearer: opts.toeIn }
+    const next = { ...p, ...u, faceWearer: opts.toeIn }
+
+    /*
+     * Re-match the source resolution to the new size.
+     *
+     * A layout changes a panel's angular footprint, which changes how many
+     * display pixels it receives — so leaving the old source resolution behind
+     * produces a technically-correct layout that looks terrible. Tightening the
+     * spread to fit three panels in view dropped them to ~9° each, where a
+     * 1500 px source lands on ~400 display pixels: 27% sharpness, and the app
+     * then complained about a mess it had just made itself.
+     *
+     * The inspector still has a per-panel override and a "Match source to size"
+     * button, so an intentional choice can be restored afterwards.
+     */
+    const a = analysePanel(next, device)
+    const matched = matchedSourceResolution(a.angularWidthDeg, next.aspect, device)
+    return { ...next, sourceWidthPx: matched.width, sourceHeightPx: matched.height }
   })
 }
 

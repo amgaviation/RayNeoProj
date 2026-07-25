@@ -1,6 +1,11 @@
 import { useStore, useView, useWorkspace } from '../lib/store'
 import { getDevice } from '../lib/device'
-import { COMFORT, analysePanel } from '../lib/optics'
+import {
+  COMFORT,
+  analysePanel,
+  devicePpd,
+  maxSpreadForFullVisibility,
+} from '../lib/optics'
 import { LAYOUTS, type LayoutId } from '../lib/layouts'
 import { Card, Empty, Slider, Toggle } from './ui'
 import { findOrphanPanels } from '../lib/exporters'
@@ -120,6 +125,19 @@ function LayoutBar() {
   const pullToComfort = useStore((s) => s.pullVisibleToComfort)
   const view = useView()
   const panelCount = view?.panelIds.length ?? 0
+  const deviceId = useStore((s) => s.profile.deviceId)
+  const device = getDevice(deviceId)
+
+  const fovWide = devicePpd(device).fov.horizontalDeg
+  const maxSpread = maxSpreadForFullVisibility(panelCount, device, opts.gapDeg)
+  // What the arc generator gives each panel — at the current spread, and at the
+  // spread that would fit everything in view. These are different numbers, and
+  // quoting the current one while offering to change the spread was misleading:
+  // it advertised 28° per panel when accepting the offer would deliver 9°.
+  const perPanel = (spread: number) =>
+    panelCount > 0 ? Math.max(0, spread / panelCount - opts.gapDeg) : 0
+  const perPanelNow = perPanel(opts.spreadDeg)
+  const perPanelIfFitted = perPanel(maxSpread)
 
   return (
     <Card title="Arrange">
@@ -164,12 +182,38 @@ function LayoutBar() {
         <Slider
           label="Spread"
           value={opts.spreadDeg}
-          min={20}
+          min={10}
           max={180}
           step={5}
           unit="°"
           onChange={(spreadDeg) => setOpts({ spreadDeg })}
-          hint="Total horizontal sweep. Past about 90° you are turning your head to reach the outer panels."
+          hint={
+            panelCount > 1 ? (
+              opts.spreadDeg > maxSpread ? (
+                <>
+                  Above {maxSpread.toFixed(0)}° the outer panels sit outside the{' '}
+                  {fovWide.toFixed(1)}° you can see at once, so you will turn your head to
+                  reach them.{' '}
+                  <button
+                    className="underline decoration-dotted hover:text-ink-200"
+                    onClick={() => setOpts({ spreadDeg: Math.round(maxSpread) })}
+                  >
+                    Fit all {panelCount} in view
+                  </button>{' '}
+                  — but that shrinks each to {perPanelIfFitted.toFixed(0)}°, down from{' '}
+                  {perPanelNow.toFixed(0)}°. On a {fovWide.toFixed(1)}° field of view you
+                  cannot have both.
+                </>
+              ) : (
+                <>
+                  All {panelCount} panels fit inside the {fovWide.toFixed(1)}° visible area
+                  at {perPanelNow.toFixed(0)}° each. No head movement needed.
+                </>
+              )
+            ) : (
+              'Total horizontal sweep across the panels in this view.'
+            )
+          }
         />
         <div className="grid grid-cols-2 gap-2">
           <Slider

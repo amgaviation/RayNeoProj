@@ -172,7 +172,13 @@ function buildDesk(): Workspace {
     [
       view('Triple', [main, left, right], {
         hotkey: '1',
-        notes: 'All three surfaces up. Glance left and right without moving your head much.',
+        // Deliberately not "glance without moving your head". At ±29° the side
+        // panels sit outside the ±20.8° you can actually see, so reaching them
+        // means a real head turn. Three panels this size cannot all be visible
+        // at once on a 41.5° field of view — the Arrange panel shows the spread
+        // that would fit, and how small it makes them.
+        notes:
+          'Main fills your view; turn your head about 29° to read either side panel. Three panels this size cannot all be visible at once — see the spread hint under Arrange.',
       }),
       view('Focus', [main], {
         hotkey: '2',

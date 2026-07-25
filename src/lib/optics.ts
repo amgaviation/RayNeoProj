@@ -152,6 +152,20 @@ export interface PanelAnalysis {
   effectivePpd: number
   /** True when the panel is wider or taller than the FOV. */
   exceedsFov: boolean
+  /**
+   * Fraction of the panel visible with the head at rest, 0–1.
+   *
+   * The metric that actually predicts whether a layout is comfortable. A panel
+   * can sit inside every other threshold and still be unreadable without turning
+   * your neck, because the field of view is only ±20.8° horizontally — narrower
+   * than people assume from a "47 inch diagonal" figure.
+   */
+  visibleFractionAtRest: number
+  /**
+   * True when the panel's centre falls outside the field of view, so reaching it
+   * means turning your head rather than moving your eyes.
+   */
+  centreOutsideFov: boolean
   /** Equivalent diagonal that would exactly fill the FOV at this distance. */
   fovFillingDiagonalIn: number
   /** Smallest legible text size, in source pixels, at this configuration. */
@@ -205,6 +219,24 @@ export function analysePanel(panel: Panel, device: DeviceProfile): PanelAnalysis
   const minLegibleTextPx =
     arcminPerSourcePx > 0 ? COMFORT_CAP_HEIGHT_ARCMIN / arcminPerSourcePx : Infinity
 
+  // How much of the panel falls inside the FOV with the head at rest. Computed
+  // on the horizontal axis, which is where layouts overflow in practice.
+  const halfFovH = ppd.fov.horizontalDeg / 2
+  const halfFovV = ppd.fov.verticalDeg / 2
+  const spanLo = panel.yawDeg - angularWidthDeg / 2
+  const spanHi = panel.yawDeg + angularWidthDeg / 2
+  const overlapW = Math.max(
+    0,
+    Math.min(spanHi, halfFovH) - Math.max(spanLo, -halfFovH),
+  )
+  const vLo = panel.pitchDeg - angularHeightDeg / 2
+  const vHi = panel.pitchDeg + angularHeightDeg / 2
+  const overlapH = Math.max(0, Math.min(vHi, halfFovV) - Math.max(vLo, -halfFovV))
+  const visibleFractionAtRest =
+    angularWidthDeg > 0 && angularHeightDeg > 0
+      ? (overlapW / angularWidthDeg) * (overlapH / angularHeightDeg)
+      : 0
+
   return {
     widthM,
     heightM,
@@ -219,6 +251,9 @@ export function analysePanel(panel: Panel, device: DeviceProfile): PanelAnalysis
     exceedsFov:
       angularWidthDeg > ppd.fov.horizontalDeg + 0.01 ||
       angularHeightDeg > ppd.fov.verticalDeg + 0.01,
+    visibleFractionAtRest,
+    centreOutsideFov:
+      Math.abs(panel.yawDeg) > halfFovH || Math.abs(panel.pitchDeg) > halfFovV,
     fovFillingDiagonalIn: fovFillingDiagonalIn(device, panel.distanceM),
     minLegibleTextPx,
   }
@@ -258,6 +293,33 @@ export function matchedSourceResolution(
   const width = Math.max(160, Math.round(Math.min(px, device.panelWidthPx) / 2) * 2)
   const height = Math.max(90, Math.round(width / aspect / 2) * 2)
   return { width, height }
+}
+
+/**
+ * The widest arc spread that still keeps every panel fully inside the field of
+ * view at rest.
+ *
+ * Worth having because the intuition is badly wrong. The horizontal FOV is about
+ * 41.5°, so three panels spread over the default 90° put their outer centres at
+ * ±45° — more than twice as far out as you can see without turning your head.
+ * The arithmetic, with the arc layout's own sizing (`w = spread/n - gap`) and the
+ * outermost centres at ±spread/2:
+ *
+ *   spread/2 + w/2 <= fov/2   =>   spread <= (fov + gap) · n/(n+1)
+ *
+ * For three panels at a 2° gap that is ~32.6°, giving ~8.9° per panel. Which
+ * exposes the real trade-off: everything visible at once means small panels.
+ * There is no spread that makes three big panels simultaneously readable, and the
+ * app should say so rather than let you discover it while wearing the glasses.
+ */
+export function maxSpreadForFullVisibility(
+  count: number,
+  device: DeviceProfile,
+  gapDeg = 0,
+) {
+  if (count <= 1) return 0
+  const fov = devicePpd(device).fov.horizontalDeg
+  return Math.max(0, (fov + gapDeg) * (count / (count + 1)))
 }
 
 /** Diagonal, in inches, that reproduces a target angular width at a distance. */
@@ -365,7 +427,55 @@ export function auditPanel(panel: Panel, device: DeviceProfile): Advisory[] {
     })
   }
 
-  if (Math.abs(panel.yawDeg) > COMFORT.comfortableYawDeg) {
+  /*
+   * Reachability, which matters more than raw off-axis angle and is easy to miss.
+   *
+   * A panel can clear every other threshold and still be unreadable without
+   * turning your neck, because the horizontal field of view is only ±20.8° —
+   * far narrower than a "big virtual screen" framing suggests. A panel centred
+   * at 29° passes a 30° off-axis check while sitting almost entirely outside
+   * what you can see. Checking the centre angle alone missed exactly that case.
+   */
+  const fov = devicePpd(device).fov
+  if (a.centreOutsideFov) {
+    const pct = Math.round(a.visibleFractionAtRest * 100)
+    out.push({
+      id: `${panel.id}:unreachable`,
+      panelId: panel.id,
+      severity: panel.anchor === 'head' ? 'error' : 'warn',
+      title:
+        panel.anchor === 'head'
+          ? `${tag} is head-locked outside the field of view`
+          : `${tag} needs a head turn — only ${pct}% of it is visible at rest`,
+      detail:
+        panel.anchor === 'head'
+          ? `Its centre sits at ${panel.yawDeg.toFixed(0)}°/${panel.pitchDeg.toFixed(
+              0,
+            )}°, outside the ±${(fov.horizontalDeg / 2).toFixed(1)}° × ±${(
+              fov.verticalDeg / 2
+            ).toFixed(
+              1,
+            )}° visible area. A head-locked panel moves with you, so it will never come into view — it is effectively invisible.`
+          : `Its centre is at ${panel.yawDeg.toFixed(0)}°/${panel.pitchDeg.toFixed(
+              0,
+            )}°, beyond the ±${(fov.horizontalDeg / 2).toFixed(1)}° × ±${(
+              fov.verticalDeg / 2
+            ).toFixed(
+              1,
+            )}° you can see at once. You will turn your head to read it, not just your eyes. Fine for something you consult occasionally; wrong for anything you switch to often.`,
+    })
+  } else if (a.visibleFractionAtRest < 0.9) {
+    out.push({
+      id: `${panel.id}:clipped`,
+      panelId: panel.id,
+      severity: 'info',
+      title: `${tag} is ${Math.round(
+        (1 - a.visibleFractionAtRest) * 100,
+      )}% clipped at rest`,
+      detail:
+        'Its centre is in view but the edges are not, so you will make small head movements to read all of it. Reduce its size or bring it closer to the centre to fix.',
+    })
+  } else if (Math.abs(panel.yawDeg) > COMFORT.comfortableYawDeg) {
     out.push({
       id: `${panel.id}:yaw`,
       panelId: panel.id,

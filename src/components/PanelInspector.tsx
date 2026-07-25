@@ -459,6 +459,19 @@ export function PanelInspector() {
             title="Roughly the smallest text height that stays comfortable to read at this size and distance."
           />
           <Stat
+            label="Visible at rest"
+            value={`${Math.round(a.visibleFractionAtRest * 100)}%`}
+            sub={a.centreOutsideFov ? 'centre off-screen' : 'head not turned'}
+            tone={
+              a.centreOutsideFov
+                ? 'danger'
+                : a.visibleFractionAtRest < 0.9
+                  ? 'warn'
+                  : 'good'
+            }
+            title="How much of this panel you can see without turning your head. The FOV is only ±20.8° horizontally, so off-axis panels fall outside it quickly."
+          />
+          <Stat
             label="Physical size"
             value={`${a.widthM.toFixed(2)} × ${a.heightM.toFixed(2)} m`}
             sub={`${panel.diagonalIn.toFixed(0)}" diagonal`}
