@@ -57,10 +57,22 @@ exports.default = async function adhocSign(context) {
     stdio: 'inherit',
   })
 
-  const info = execFileSync('codesign', ['--display', '--verbose=2', appPath], {
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe'],
-  })
+  // codesign writes --display output to stderr, not stdout, so it has to be
+  // merged in — reading stdout alone reported "signature=unknown" on bundles
+  // that were in fact correctly signed.
+  const info = execFileSync(
+    'sh',
+    ['-c', `codesign --display --verbose=2 "${appPath}" 2>&1`],
+    { encoding: 'utf8' },
+  )
   const signature = /Signature=(.*)/.exec(info)?.[1]?.trim() ?? 'unknown'
-  console.log(`  • ad-hoc signed  arch=${arch} signature=${signature} app=${appPath}`)
+  // electron-builder passes Arch as an enum ordinal; the number alone is noise.
+  const archName = { 0: 'ia32', 1: 'x64', 2: 'armv7l', 3: 'arm64', 4: 'universal' }[arch] ?? arch
+  console.log(`  • ad-hoc signed  arch=${archName} signature=${signature}`)
+
+  if (signature !== 'adhoc') {
+    throw new Error(
+      `ad-hoc signing: expected Signature=adhoc, got "${signature}" — the app would report as damaged on Apple Silicon`,
+    )
+  }
 }

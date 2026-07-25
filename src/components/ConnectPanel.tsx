@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useStore } from '../lib/store'
 import { DEFAULT_BRIDGE_PORT, SDK_MAPPING } from '../lib/bridge'
 import { Card, Toggle } from './ui'
+import { HidProbe } from './HidProbe'
 
 /**
  * Companion connection.
@@ -29,6 +30,7 @@ export function ConnectPanel() {
   return (
     <div className="space-y-3">
       <PlatformReality />
+      <HidProbe />
 
       <Card title="Why a companion app is needed">
         <p className="text-[11.5px] leading-relaxed text-ink-400">
@@ -201,16 +203,21 @@ function PlatformReality() {
       {platform === 'apple' ? (
         <>
           <p className="text-[12px] leading-relaxed text-[var(--color-warn)]">
-            On macOS, no — and no app can. There is no software path to the Air 4 Pro's
-            settings from a Mac.
+            Not through any official route, no.
           </p>
           <p className="mt-2 text-[11.5px] leading-relaxed text-ink-400">
             macOS sees the glasses as a plain external monitor over USB-C DisplayPort:
-            no driver, no control API, no access to the head tracker. RayNeo's own
-            desktop software is Windows-only, the RayNeo XR app is phone-only, and the
-            Air SDK this app targets is Android/Unity. The bridge below can only reach a
-            companion running on an Android host — pointing it at your Mac will not find
-            anything.
+            no driver, no control API, no head-tracker access. RayNeo's own desktop
+            software is Windows-only, the RayNeo XR app is phone-only, and the Air SDK
+            this app targets is Android/Unity. The bridge below reaches a companion on an
+            Android host — pointing it at your Mac will find nothing.
+          </p>
+          <p className="mt-2 text-[11.5px] leading-relaxed text-ink-400">
+            There is an <em>unofficial</em> possibility, though. Glasses in this class
+            usually expose a USB HID interface for their MCU and sensors, and those have
+            been reverse-engineered for several brands — including a RayNeo Air 3s Pro
+            driver built on macOS IOKit HID. Whether the Air 4 Pro does the same is
+            untested, so the probe below asks your hardware directly.
           </p>
           <div className="mt-2.5 space-y-1.5 border-t border-ink-800 pt-2.5">
             <p className="label">What does change a setting on a Mac</p>

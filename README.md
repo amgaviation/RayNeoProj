@@ -8,7 +8,7 @@ Every figure it shows is derived from the published hardware specs — 1920×108
 per eye, 47° diagonal FOV, 120 Hz, HDR10 — and the maths is unit-tested. See
 [`docs/OPTICS.md`](docs/OPTICS.md) for the reasoning.
 
-## Read this first — this app cannot control your glasses from a Mac
+## Read this first — this app does not control your glasses from a Mac
 
 Being blunt about it, because the word "configurator" invites the wrong
 expectation.
@@ -18,11 +18,11 @@ DisplayPort Alt Mode; the host does all the rendering. The settings that live on
 the glasses — brightness step, IPD, FOV trim, recentre — are reached through the
 RayNeo Air Unity SDK's `NativeModule`, which is **Android/Unity code**.
 
-**On macOS there is no path to those settings at all — not from this app, and not
-from any app.** macOS sees the glasses as a plain external monitor: no driver, no
-control API, no access to the head tracker. RayNeo's own desktop software
-(Mirror Studio) is Windows-only, and the RayNeo XR app is phone-only. No browser
-API helps either — not WebHID, not WebUSB, not WebXR.
+**There is no official path to those settings from macOS.** macOS sees the
+glasses as a plain external monitor: no driver, no control API, no head-tracker
+access. RayNeo's own desktop software (Mirror Studio) is Windows-only, and the
+RayNeo XR app is phone-only. WebXR does not help — the glasses present as a
+monitor, not an XR device, so there is no runtime to bind to.
 
 On a Mac, what actually changes a setting:
 
@@ -38,6 +38,15 @@ framing: work out the layout, check it against the real optical limits, export
 Unity C# or a JSON profile. Everything except live device control is fully
 functional, and the app tells you which is which — each device control is tagged
 with whether a real SDK call backs it or whether it is host-side.
+
+There is one **unofficial** possibility worth testing. Glasses in this class
+generally expose a USB HID interface for their MCU and sensors, and those have
+been reverse-engineered for several brands — including a RayNeo Air 3s Pro driver
+built on macOS IOKit HID. Whether the Air 4 Pro does the same is untested, so the
+app ships a read-only probe: **Connect → Probe the USB connection**. It
+enumerates the interfaces, listens for sensor traffic, and gives a verdict.
+It never writes anything. See [`docs/MAC_CONTROL.md`](docs/MAC_CONTROL.md) for
+what is established fact and what is not.
 
 **Live control is possible, but only from an Android host**, where the Air SDK
 actually runs. Two ways to get there:
@@ -102,7 +111,7 @@ Two ways, depending on whether you want an app icon in your dock.
 
 Grab **[`download/RayNeo-Air4Pro-Configurator.html`](download/RayNeo-Air4Pro-Configurator.html)**
 (use the "Download raw file" button) and double-click it. That is the whole app —
-836 kB of self-contained HTML, no server, no install, no network. It opens in
+~850 kB of self-contained HTML, no server, no install, no network. It opens in
 Safari or Chrome and works fully offline.
 
 Verified with every network request blocked: it makes none. Your profile is saved
@@ -204,7 +213,7 @@ src/components/
 companion/       Unity C# for the host side
 desktop/         Electron wrapper + electron-builder config for the macOS app
 download/        the built single-file app (committed, so it can be grabbed directly)
-docs/            optics reasoning, bridge protocol
+docs/            optics reasoning, bridge protocol, macOS control findings
 ```
 
 `npm run build:offline` regenerates `download/RayNeo-Air4Pro-Configurator.html`.
@@ -241,8 +250,10 @@ angular size, which is free sharpness. `docs/OPTICS.md` explains why.
   tab cannot see a head nod; the companion has to implement them.
 - Panel *contents* are mock-ups. This tool designs the arrangement — it is not a
   window manager and does not stream real application output.
-- **No live device control on macOS.** Not a limitation of this app — there is no
-  macOS API for the Air series at all. See the top of this README.
+- **No official live device control on macOS.** Not a limitation of this app —
+  RayNeo provide no macOS API for the Air series. An unofficial USB HID route may
+  exist; the app ships a read-only probe to find out. See
+  [`docs/MAC_CONTROL.md`](docs/MAC_CONTROL.md).
 - The macOS app is **ad-hoc signed, not notarised**, so first launch needs the
   right-click → Open step above. Proper signing needs a paid Apple Developer
   certificate.

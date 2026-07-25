@@ -10,11 +10,14 @@
  * has no need for either, and leaving them off is the safe default.
  */
 
-const { app, BrowserWindow, Menu, shell, screen } = require('electron')
+const { app, BrowserWindow, Menu, dialog, shell, screen } = require('electron')
 const path = require('node:path')
 const fs = require('node:fs')
 
 const APP_HTML = 'RayNeo-Air4Pro-Configurator.html'
+
+/** USB ids read better as hex, which is how every datasheet quotes them. */
+const hex4 = (n) => `0x${Number(n).toString(16).padStart(4, '0').toUpperCase()}`
 
 // A packaged build takes this from Info.plist, but running from source it would
 // otherwise fall back to the package name — and this string is the first item in
@@ -126,6 +129,60 @@ npm run build:offline</pre></body>`),
   })
   mainWindow.on('closed', () => {
     mainWindow = null
+  })
+
+  /*
+   * WebHID plumbing, so the USB probe works in the desktop app.
+   *
+   * Electron does not wire this up for you: without a `select-hid-device`
+   * handler, `navigator.hid.requestDevice()` resolves to an empty array and the
+   * probe silently finds nothing — which looks exactly like "the glasses expose
+   * no HID interface". Since the whole point of the probe is to distinguish
+   * those two cases, the difference matters.
+   *
+   * Electron ships no chooser UI either, so this presents a native dialog.
+   */
+  const wc = mainWindow.webContents
+
+  wc.session.setPermissionRequestHandler((_contents, permission, callback) => {
+    // The app needs nothing else; granting only HID keeps the surface minimal.
+    callback(permission === 'hid')
+  })
+
+  wc.session.setDevicePermissionHandler(({ deviceType }) => deviceType === 'hid')
+
+  wc.on('select-hid-device', (event, details, callback) => {
+    event.preventDefault()
+    const list = details.deviceList ?? []
+
+    if (list.length === 0) {
+      callback(undefined)
+      return
+    }
+
+    // A native dialog rather than a renderer-side picker: the page is a single
+    // self-contained HTML file with no preload and no IPC channel, so there is
+    // nothing on the other side to ask.
+    const labels = list
+      .slice(0, 8)
+      .map(
+        (d) =>
+          `${d.name || 'Unnamed device'}  (${hex4(d.vendorId)}:${hex4(d.productId)})`,
+      )
+
+    const choice = dialog.showMessageBoxSync(mainWindow, {
+      type: 'question',
+      title: 'Choose a device to probe',
+      message: 'Which USB device are your glasses?',
+      detail:
+        'Glasses usually present several interfaces — audio, display control, sensors. Probe each in turn to find the one carrying sensor data. This is read-only.',
+      buttons: [...labels, 'Cancel'],
+      cancelId: labels.length,
+      defaultId: 0,
+      noLink: true,
+    })
+
+    callback(choice >= 0 && choice < labels.length ? list[choice].deviceId : undefined)
   })
 
   // External links belong in the user's browser, not in a chromeless app window.
