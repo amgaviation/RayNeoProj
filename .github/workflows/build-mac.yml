@@ -25,7 +25,67 @@ permissions:
   contents: write
 
 jobs:
+  # Cheap gate on Linux before spending macOS minutes.
+  #
+  # electron-builder can assemble the whole .app bundle cross-platform — only
+  # wrapping it into a .dmg needs Apple's tooling. So a config error or a missing
+  # resource fails here in ~2 minutes on a 1x-billed runner instead of ten
+  # minutes into a 10x-billed macOS one. Added after exactly that happened: an
+  # invalid key in the `mac` config was only caught by the real build.
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            desktop/package-lock.json
+
+      - name: Install web dependencies
+        run: npm ci
+
+      - name: Check types and run tests
+        run: |
+          npm run typecheck
+          npm test
+
+      - name: Build the single-file app
+        run: npm run build:offline
+
+      - name: Confirm the single file is self-contained
+        # build:offline already fails on a leftover external reference; this also
+        # asserts the artifact exists and is a plausible size.
+        run: |
+          f=download/RayNeo-Air4Pro-Configurator.html
+          test -f "$f" || { echo "missing $f"; exit 1; }
+          size=$(wc -c <"$f")
+          echo "single-file build: $size bytes"
+          test "$size" -gt 300000 || { echo "suspiciously small"; exit 1; }
+
+      - name: Install desktop dependencies
+        working-directory: desktop
+        run: npm ci
+
+      - name: Assemble the .app bundle (no .dmg)
+        working-directory: desktop
+        run: npx electron-builder --mac --dir
+
+      - name: Verify the bundle carries the app
+        working-directory: desktop
+        run: |
+          app=$(find release -maxdepth 2 -name "*.app" | head -1)
+          test -n "$app" || { echo "no .app produced"; exit 1; }
+          test -f "$app/Contents/Resources/app/RayNeo-Air4Pro-Configurator.html" \
+            || { echo "bundled page missing from $app"; exit 1; }
+          echo "ok: $app"
+
   build:
+    needs: validate
     # arm64 runner. Apple Silicon builds natively; electron-builder fetches the
     # x64 Electron binary for the Intel target.
     runs-on: macos-14

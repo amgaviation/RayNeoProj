@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "macOS app wrapper for the RayNeo Air 4 Pro Workspace Configurator",
+  "author": "AMG Aviation",
   "main": "main.cjs",
   "scripts": {
     "start": "electron .",
@@ -55,7 +56,6 @@
           ]
         }
       ],
-      "// identity: null": "Builds unsigned on purpose — there is no Apple Developer certificate in CI. Gatekeeper will therefore quarantine the download; the README explains the one-time right-click-Open step.",
       "identity": null,
       "extendInfo": {
         "NSHumanReadableCopyright": "AMG Aviation",
