@@ -1,9 +1,4 @@
 node_modules/
 dist/
-.vite/
-desktop/release/
-dist-offline/
-*.local
+.env
 .DS_Store
-coverage/
-node_modules/.tmp/
