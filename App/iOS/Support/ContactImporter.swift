@@ -6,7 +6,7 @@ import ReminderCore
 /// Presents the system contact picker. The picker runs out of process, so it
 /// needs no Contacts permission and only returns the people the user picks.
 @MainActor
-final class ContactImporter: NSObject, CNContactPickerDelegate {
+final class ContactImporter: NSObject, @preconcurrency CNContactPickerDelegate {
     struct PickedContact {
         let name: String
         let handle: String

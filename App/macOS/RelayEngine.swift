@@ -310,18 +310,8 @@ final class RelayEngine: ObservableObject {
     /// Updates recent relay sends from the Messages database: delivered, failed
     /// (with an SMS retry if enabled), or late confirmation of a timed-out send.
     private func followUpRecentSends(repository: Repository, settings: SharedSettings, chatDB: ChatDatabase, now: Date) async {
-        let since = now.addingTimeInterval(-6 * 3_600)
-        let relay = DeliveryChannel.relay.rawValue
-        let sent = DeliveryStatus.sent.rawValue
-        let sending = DeliveryStatus.sending.rawValue
-        let descriptor = FetchDescriptor<DeliveryRecord>(
-            predicate: #Predicate { record in
-                record.channelRaw == relay
-                    && (record.statusRaw == sent || record.statusRaw == sending)
-                    && record.createdAt >= since
-            }
-        )
-        guard let records = try? repository.context.fetch(descriptor), !records.isEmpty else { return }
+        let records = repository.relaySendsAwaitingConfirmation(since: now.addingTimeInterval(-6 * 3_600))
+        guard !records.isEmpty else { return }
         let device = DeviceInfo.name
 
         for record in records where record.deviceName == device {
@@ -449,8 +439,7 @@ final class RelayEngine: ObservableObject {
             return
         }
         let deviceID = prefs.deviceID
-        let descriptor = FetchDescriptor<RelayHeartbeat>(predicate: #Predicate { $0.deviceID == deviceID })
-        let existing = (try? repository.context.fetch(descriptor)) ?? []
+        let existing = repository.heartbeats(deviceID: deviceID)
         let heartbeat: RelayHeartbeat
         if let first = existing.first {
             heartbeat = first

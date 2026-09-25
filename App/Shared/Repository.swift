@@ -93,6 +93,38 @@ struct Repository {
         return ((try? context.fetchCount(descriptor)) ?? 0) > 0
     }
 
+    /// Relay sends still waiting for a delivery confirmation, newest first.
+    func relaySendsAwaitingConfirmation(since date: Date) -> [DeliveryRecord] {
+        let relay = DeliveryChannel.relay.rawValue
+        let sent = DeliveryStatus.sent.rawValue
+        let sending = DeliveryStatus.sending.rawValue
+        let descriptor = FetchDescriptor<DeliveryRecord>(
+            predicate: #Predicate { record in
+                record.channelRaw == relay
+                    && (record.statusRaw == sent || record.statusRaw == sending)
+                    && record.createdAt >= date
+            },
+            sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
+        )
+        return (try? context.fetch(descriptor)) ?? []
+    }
+
+    /// The newest delivery records for one person, for their detail screen.
+    static func deliveriesDescriptor(recipientID: UUID?, limit: Int) -> FetchDescriptor<DeliveryRecord> {
+        var descriptor = FetchDescriptor<DeliveryRecord>(
+            predicate: #Predicate { $0.recipientID == recipientID },
+            sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
+        )
+        descriptor.fetchLimit = limit
+        return descriptor
+    }
+
+    /// Heartbeat records for one relay Mac (normally exactly one).
+    func heartbeats(deviceID: String) -> [RelayHeartbeat] {
+        let descriptor = FetchDescriptor<RelayHeartbeat>(predicate: #Predicate { $0.deviceID == deviceID })
+        return (try? context.fetch(descriptor)) ?? []
+    }
+
     func heartbeats() -> [RelayHeartbeat] {
         let descriptor = FetchDescriptor<RelayHeartbeat>(sortBy: [SortDescriptor(\.lastSeen, order: .reverse)])
         return (try? context.fetch(descriptor)) ?? []

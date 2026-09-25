@@ -10,15 +10,15 @@
       <BuildActionEntries>
          <BuildActionEntry
             buildForTesting = "YES"
-            buildForRunning = "YES"
-            buildForProfiling = "YES"
-            buildForArchiving = "YES"
-            buildForAnalyzing = "YES">
+            buildForRunning = "NO"
+            buildForProfiling = "NO"
+            buildForArchiving = "NO"
+            buildForAnalyzing = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "B58AFCC21B35E099E9468E0C"
-               BuildableName = "BlueNudgeRelay.app"
-               BlueprintName = "BlueNudgeRelay"
+               BlueprintIdentifier = "7E5D0CA49DF389CA70407F12"
+               BuildableName = "BlueNudgeTests.xctest"
+               BlueprintName = "BlueNudgeTests"
                ReferencedContainer = "container:BlueNudge.xcodeproj">
             </BuildableReference>
          </BuildActionEntry>
@@ -33,9 +33,9 @@
       <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "B58AFCC21B35E099E9468E0C"
-            BuildableName = "BlueNudgeRelay.app"
-            BlueprintName = "BlueNudgeRelay"
+            BlueprintIdentifier = "7E5D0CA49DF389CA70407F12"
+            BuildableName = "BlueNudgeTests.xctest"
+            BlueprintName = "BlueNudgeTests"
             ReferencedContainer = "container:BlueNudge.xcodeproj">
          </BuildableReference>
       </MacroExpansion>
@@ -65,18 +65,15 @@
       debugDocumentVersioning = "YES"
       debugServiceExtension = "internal"
       allowLocationSimulation = "YES">
-      <BuildableProductRunnable
-         runnableDebuggingMode = "0">
+      <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "B58AFCC21B35E099E9468E0C"
-            BuildableName = "BlueNudgeRelay.app"
-            BlueprintName = "BlueNudgeRelay"
+            BlueprintIdentifier = "7E5D0CA49DF389CA70407F12"
+            BuildableName = "BlueNudgeTests.xctest"
+            BlueprintName = "BlueNudgeTests"
             ReferencedContainer = "container:BlueNudge.xcodeproj">
          </BuildableReference>
-      </BuildableProductRunnable>
-      <CommandLineArguments>
-      </CommandLineArguments>
+      </MacroExpansion>
    </LaunchAction>
    <ProfileAction
       buildConfiguration = "Release"
@@ -84,18 +81,15 @@
       savedToolIdentifier = ""
       useCustomWorkingDirectory = "NO"
       debugDocumentVersioning = "YES">
-      <BuildableProductRunnable
-         runnableDebuggingMode = "0">
+      <MacroExpansion>
          <BuildableReference
             BuildableIdentifier = "primary"
-            BlueprintIdentifier = "B58AFCC21B35E099E9468E0C"
-            BuildableName = "BlueNudgeRelay.app"
-            BlueprintName = "BlueNudgeRelay"
+            BlueprintIdentifier = "7E5D0CA49DF389CA70407F12"
+            BuildableName = "BlueNudgeTests.xctest"
+            BlueprintName = "BlueNudgeTests"
             ReferencedContainer = "container:BlueNudge.xcodeproj">
          </BuildableReference>
-      </BuildableProductRunnable>
-      <CommandLineArguments>
-      </CommandLineArguments>
+      </MacroExpansion>
    </ProfileAction>
    <AnalyzeAction
       buildConfiguration = "Debug">

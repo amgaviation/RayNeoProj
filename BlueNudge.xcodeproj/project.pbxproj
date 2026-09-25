@@ -8,9 +8,11 @@
 
 /* Begin PBXBuildFile section */
 		0BB0E7297B7946B3EA45BDAC /* SendQueueView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91DFBD55C70B253A4A3240C7 /* SendQueueView.swift */; };
+		0EE48378E5C62FEF12B39A39 /* Repository.swift in Sources */ = {isa = PBXBuildFile; fileRef = D29A372D196C7BF3CD22BD38 /* Repository.swift */; };
 		1206BC26BF6D118D7D052E8D /* ReminderCore in Frameworks */ = {isa = PBXBuildFile; productRef = E84E5EFF651CE914207B1398 /* ReminderCore */; };
 		16B1D503F5767E57FDAE0EE5 /* DeviceInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = E85F0CD75E2A4FE9412EF667 /* DeviceInfo.swift */; };
 		1949902B629677EA0624292E /* DeviceInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = E85F0CD75E2A4FE9412EF667 /* DeviceInfo.swift */; };
+		1D48AE2FF204153E45134BB1 /* RelayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A06309FFE507B4F0409FD966 /* RelayTests.swift */; };
 		21A3ABA150F6204112DB8234 /* PeopleViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9E8E04C1915FBEBC662A1F54 /* PeopleViews.swift */; };
 		21DD6FEED26BA30D3F6047E7 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AACCE51C2DAF080D1B521E17 /* RootView.swift */; };
 		242A031AA694A4C56F94247B /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E2219416306B7480B16A938 /* AppState.swift */; };
@@ -18,11 +20,17 @@
 		2EBD548F1A29DE83DF0C1C2E /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 866C787EA49DBB5D1D2D9E31 /* Components.swift */; };
 		3C818BC4693666D02F39C69C /* BlueNudgeIntents.swift in Sources */ = {isa = PBXBuildFile; fileRef = A0D1E1DA86D9704BB100EE6C /* BlueNudgeIntents.swift */; };
 		42DBCF9DC962F93AA042D32E /* Repository.swift in Sources */ = {isa = PBXBuildFile; fileRef = D29A372D196C7BF3CD22BD38 /* Repository.swift */; };
+		4425012FD5C77E8FD3036EA0 /* DeviceInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = E85F0CD75E2A4FE9412EF667 /* DeviceInfo.swift */; };
 		4E848A474F11165DAF916588 /* DataStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE45D22BA71C5658EB087121 /* DataStore.swift */; };
+		50A51AC9EE7E3E2265A21982 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5244ECA2C53970DEC762DE /* Models.swift */; };
+		5346E57CC752CE51191540AC /* RepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C469A5338C95586465AA982D /* RepositoryTests.swift */; };
 		54E5489159C56AA8D082340B /* ReminderCore in Frameworks */ = {isa = PBXBuildFile; productRef = DEC5DF4460BAD2D4DA9EDC5F /* ReminderCore */; };
 		59659CA917A8BF4822B640D7 /* Repository.swift in Sources */ = {isa = PBXBuildFile; fileRef = D29A372D196C7BF3CD22BD38 /* Repository.swift */; };
+		5ECCEAFBB3F79D7E65DCE5FA /* ChatDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1374B83B20D269E7C2F37DC8 /* ChatDatabase.swift */; };
 		5EEE81211C2CB46E9806DF01 /* ChatDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1374B83B20D269E7C2F37DC8 /* ChatDatabase.swift */; };
 		609E01CF9DC10A105A93C645 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E492B33149D3490E27E3CEA8 /* TodayView.swift */; };
+		79AB14A1867004503106A043 /* DataStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE45D22BA71C5658EB087121 /* DataStore.swift */; };
+		85B0CFDD388D82020E1EC820 /* MessagesSender.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46976910A11354C672566468 /* MessagesSender.swift */; };
 		866D5D24F51079C6679322ED /* RelaySupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CE225AA9A48C78C148CC1EB /* RelaySupport.swift */; };
 		8E799769CC19F0C4371F1D20 /* RelayEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EB6D8CE604BD9969F0801E7 /* RelayEngine.swift */; };
 		8F685B1A3F0F2BC93D1ABC79 /* ReminderEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D953C744C1767EF899319689 /* ReminderEditorView.swift */; };
@@ -39,12 +47,14 @@
 		DF353F62E4D7BC8EFCCC811D /* DataStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE45D22BA71C5658EB087121 /* DataStore.swift */; };
 		E8C7EB2E3FB277E613CAFBAA /* MessagesSender.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46976910A11354C672566468 /* MessagesSender.swift */; };
 		ED7C00B928D03E4AE3C53BA5 /* SendQueue.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0FBC13F492020563187096FA /* SendQueue.swift */; };
+		F2C0551799EAD43BF50CBE40 /* ReminderCore in Frameworks */ = {isa = PBXBuildFile; productRef = BE7E35B44BB628F30BC66D87 /* ReminderCore */; };
 		F6FE0E04007F0B5BEB8718E4 /* MessageComposeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74214CC98AFC9617AEA71991 /* MessageComposeView.swift */; };
 		FCB3C015D25C40899B0F638A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 99EBDDF64D11CC0853683B6A /* Assets.xcassets */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		0BB26F07BF12AFAEC0883A3D /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
+		0CCC119CE189868D9CF96144 /* BlueNudgeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BlueNudgeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		0FBC13F492020563187096FA /* SendQueue.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SendQueue.swift; sourceTree = "<group>"; };
 		11262D3B18B42364741EFEB9 /* ReminderCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = ReminderCore; path = Packages/ReminderCore; sourceTree = SOURCE_ROOT; };
 		1374B83B20D269E7C2F37DC8 /* ChatDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatDatabase.swift; sourceTree = "<group>"; };
@@ -66,8 +76,10 @@
 		99EBDDF64D11CC0853683B6A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		9E8E04C1915FBEBC662A1F54 /* PeopleViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PeopleViews.swift; sourceTree = "<group>"; };
 		9F10DA635D140DD328DFEA08 /* BlueNudgeRelay.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BlueNudgeRelay.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A06309FFE507B4F0409FD966 /* RelayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelayTests.swift; sourceTree = "<group>"; };
 		A0D1E1DA86D9704BB100EE6C /* BlueNudgeIntents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlueNudgeIntents.swift; sourceTree = "<group>"; };
 		AACCE51C2DAF080D1B521E17 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		C469A5338C95586465AA982D /* RepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryTests.swift; sourceTree = "<group>"; };
 		D29A372D196C7BF3CD22BD38 /* Repository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Repository.swift; sourceTree = "<group>"; };
 		D439752737CDAAAF27EB8A0C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		D91840F433A52A9D669E9247 /* RelayApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelayApp.swift; sourceTree = "<group>"; };
@@ -98,6 +110,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		B45E3480FE78A0BD34178D4B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F2C0551799EAD43BF50CBE40 /* ReminderCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -106,6 +126,7 @@
 			children = (
 				820E67233FC25B83BD574936 /* App */,
 				D9C341211779D211D3567841 /* Packages */,
+				F02C19421226AABE200D8D54 /* Tests */,
 				D29C928E38503ECBF3E1911E /* Products */,
 			);
 			sourceTree = "<group>";
@@ -136,6 +157,15 @@
 				D8BB150B6A3AEAC3D53608A1 /* Shared */,
 			);
 			path = App;
+			sourceTree = "<group>";
+		};
+		823417470C548CA8B2F21EB1 /* BlueNudgeTests */ = {
+			isa = PBXGroup;
+			children = (
+				A06309FFE507B4F0409FD966 /* RelayTests.swift */,
+				C469A5338C95586465AA982D /* RepositoryTests.swift */,
+			);
+			path = BlueNudgeTests;
 			sourceTree = "<group>";
 		};
 		951C1E8E36B46FC9134D10C8 /* Views */ = {
@@ -176,6 +206,7 @@
 			children = (
 				E9935844FB209291D8FEE82F /* BlueNudge.app */,
 				9F10DA635D140DD328DFEA08 /* BlueNudgeRelay.app */,
+				0CCC119CE189868D9CF96144 /* BlueNudgeTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -214,6 +245,14 @@
 			path = Packages;
 			sourceTree = "<group>";
 		};
+		F02C19421226AABE200D8D54 /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				823417470C548CA8B2F21EB1 /* BlueNudgeTests */,
+			);
+			path = Tests;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -236,6 +275,25 @@
 			productName = BlueNudge;
 			productReference = E9935844FB209291D8FEE82F /* BlueNudge.app */;
 			productType = "com.apple.product-type.application";
+		};
+		7E5D0CA49DF389CA70407F12 /* BlueNudgeTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 792EC7D82C0708573627639C /* Build configuration list for PBXNativeTarget "BlueNudgeTests" */;
+			buildPhases = (
+				F09F39CEF8D0203825D3581B /* Sources */,
+				B45E3480FE78A0BD34178D4B /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = BlueNudgeTests;
+			packageProductDependencies = (
+				BE7E35B44BB628F30BC66D87 /* ReminderCore */,
+			);
+			productName = BlueNudgeTests;
+			productReference = 0CCC119CE189868D9CF96144 /* BlueNudgeTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
 		};
 		B58AFCC21B35E099E9468E0C /* BlueNudgeRelay */ = {
 			isa = PBXNativeTarget;
@@ -270,6 +328,10 @@
 						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
+					7E5D0CA49DF389CA70407F12 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
 					B58AFCC21B35E099E9468E0C = {
 						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
@@ -295,6 +357,7 @@
 			targets = (
 				304018095A4BE491EE0E874D /* BlueNudge */,
 				B58AFCC21B35E099E9468E0C /* BlueNudgeRelay */,
+				7E5D0CA49DF389CA70407F12 /* BlueNudgeTests */,
 			);
 		};
 /* End PBXProject section */
@@ -363,6 +426,21 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		F09F39CEF8D0203825D3581B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5ECCEAFBB3F79D7E65DCE5FA /* ChatDatabase.swift in Sources */,
+				79AB14A1867004503106A043 /* DataStore.swift in Sources */,
+				4425012FD5C77E8FD3036EA0 /* DeviceInfo.swift in Sources */,
+				85B0CFDD388D82020E1EC820 /* MessagesSender.swift in Sources */,
+				50A51AC9EE7E3E2265A21982 /* Models.swift in Sources */,
+				1D48AE2FF204153E45134BB1 /* RelayTests.swift in Sources */,
+				0EE48378E5C62FEF12B39A39 /* Repository.swift in Sources */,
+				5346E57CC752CE51191540AC /* RepositoryTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin XCBuildConfiguration section */
@@ -402,6 +480,22 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.amgaviationgroup.bluenudge.relay;
 				PRODUCT_NAME = "BlueNudge Relay";
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		502B3E57DA1A45B57CA7A626 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.amgaviationgroup.bluenudge.tests;
 				SDKROOT = macosx;
 			};
 			name = Release;
@@ -577,9 +671,34 @@
 			};
 			name = Release;
 		};
+		C780B162A7609CE4283C5F4C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.amgaviationgroup.bluenudge.tests;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		792EC7D82C0708573627639C /* Build configuration list for PBXNativeTarget "BlueNudgeTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C780B162A7609CE4283C5F4C /* Debug */,
+				502B3E57DA1A45B57CA7A626 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		A3E39F4BC04190BB8DD24E14 /* Build configuration list for PBXProject "BlueNudge" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
@@ -617,6 +736,10 @@
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		BE7E35B44BB628F30BC66D87 /* ReminderCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ReminderCore;
+		};
 		DEC5DF4460BAD2D4DA9EDC5F /* ReminderCore */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = ReminderCore;

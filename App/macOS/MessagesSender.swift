@@ -24,7 +24,8 @@ enum MessagesSender {
 
     static let messagesBundleID = "com.apple.MobileSMS"
 
-    private static let sendScript = [
+    /// Lines of the AppleScript run by `send`. Internal so tests can compile it.
+    static let sendScript = [
         "on run argv",
         "  set targetHandle to item 1 of argv",
         "  set messageText to item 2 of argv",
@@ -49,9 +50,12 @@ enum MessagesSender {
         return .failed(describe(result.errorOutput))
     }
 
+    /// A harmless query whose only purpose is to trigger the permission prompt.
+    static let permissionProbeScript = ["tell application \"Messages\" to get name"]
+
     /// Makes macOS ask for permission to control Messages (a harmless query).
     static func requestAutomationAccess() async -> Outcome {
-        let result = await runOSAScript(lines: ["tell application \"Messages\" to get name"], arguments: [], timeout: 120)
+        let result = await runOSAScript(lines: permissionProbeScript, arguments: [], timeout: 120)
         if result.timedOut { return .timedOut }
         return result.status == 0 ? .sent : .failed(describe(result.errorOutput))
     }

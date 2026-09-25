@@ -25,7 +25,7 @@ jobs:
     timeout-minutes: 15
     container: swift:latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Run tests
         run: swift test --package-path Packages/ReminderCore
 
@@ -35,7 +35,7 @@ jobs:
     runs-on: macos-26
     timeout-minutes: 40
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Xcode version
         run: xcodebuild -version
@@ -62,5 +62,15 @@ jobs:
           -scheme BlueNudgeRelay
           -configuration Debug
           -destination 'generic/platform=macOS'
+          -derivedDataPath build/DerivedData
+          CODE_SIGNING_ALLOWED=NO
+
+      # SwiftData queries, chat.db queries and the Messages AppleScript.
+      - name: App tests (macOS)
+        run: >
+          xcodebuild test -quiet
+          -project BlueNudge.xcodeproj
+          -scheme BlueNudgeTests
+          -destination 'platform=macOS'
           -derivedDataPath build/DerivedData
           CODE_SIGNING_ALLOWED=NO

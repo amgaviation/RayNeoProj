@@ -110,6 +110,7 @@ App/Shared/        SwiftData models, iCloud store, repository (both apps)
 App/iOS/           iPhone app: views, notifications, send queue, Shortcuts intents
 App/macOS/         Mac relay: engine, Messages sender, chat.db reader, menu bar + dashboard
 Packages/ReminderCore/  Platform-neutral logic + unit tests
+Tests/BlueNudgeTests/   Data-layer and relay tests (macOS)
 project.yml        XcodeGen spec (BlueNudge.xcodeproj is generated from it)
 scripts/make_icons.py  Draws the app icons
 ```
@@ -120,12 +121,16 @@ scripts/make_icons.py  Draws the app icons
 # Core logic tests (macOS or Linux)
 swift test --package-path Packages/ReminderCore
 
+# App tests on a Mac: SwiftData queries, Messages database queries and the
+# relay's AppleScript (compiled against Messages, nothing is sent)
+xcodebuild test -project BlueNudge.xcodeproj -scheme BlueNudgeTests -destination 'platform=macOS'
+
 # After editing project.yml
 brew install xcodegen && xcodegen generate
 ```
 
-CI (`.github/workflows/ci.yml`) runs the core tests on Linux, then on macOS and
-builds both apps with signing disabled.
+CI (`.github/workflows/ci.yml`) runs the core tests on Linux, then on macOS,
+builds both apps with signing disabled and runs the app tests.
 
 ### Changing identifiers
 

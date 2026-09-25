@@ -121,6 +121,25 @@ targets:
         ENABLE_HARDENED_RUNTIME: YES
         COMBINE_HIDPI_IMAGES: YES
 
+  # Runtime checks for the shared data layer and the relay's Messages plumbing:
+  # SwiftData queries on an in-memory store, chat.db queries on a synthetic
+  # database, and the AppleScript compiled against Messages' dictionary.
+  # Plain logic tests (no host app), so running them never launches the relay.
+  BlueNudgeTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: Tests/BlueNudgeTests
+      - path: App/Shared
+      - path: App/macOS/ChatDatabase.swift
+      - path: App/macOS/MessagesSender.swift
+    dependencies:
+      - package: ReminderCore
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.amgaviationgroup.bluenudge.tests
+        GENERATE_INFOPLIST_FILE: YES
+
 schemes:
   BlueNudge:
     build:
@@ -140,9 +159,21 @@ schemes:
         BlueNudgeRelay: all
     run:
       config: Debug
+    test:
+      config: Debug
+      targets:
+        - BlueNudgeTests
     profile:
       config: Release
     analyze:
       config: Debug
     archive:
       config: Release
+  BlueNudgeTests:
+    build:
+      targets:
+        BlueNudgeTests: [test]
+    test:
+      config: Debug
+      targets:
+        - BlueNudgeTests

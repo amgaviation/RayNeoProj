@@ -267,13 +267,7 @@ struct RecipientEditorView: View {
     init(recipient: Recipient?, onCreate: ((UUID) -> Void)? = nil) {
         self.recipient = recipient
         self.onCreate = onCreate
-        let id: UUID? = recipient?.id ?? UUID()
-        var descriptor = FetchDescriptor<DeliveryRecord>(
-            predicate: #Predicate { $0.recipientID == id },
-            sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
-        )
-        descriptor.fetchLimit = 20
-        _deliveries = Query(descriptor)
+        _deliveries = Query(Repository.deliveriesDescriptor(recipientID: recipient?.id ?? UUID(), limit: 20))
     }
 
     private var repository: Repository { Repository(context: modelContext) }

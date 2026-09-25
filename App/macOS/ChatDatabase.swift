@@ -31,7 +31,7 @@ final class ChatDatabase {
     private static let transient = unsafeBitCast(-1, to: sqlite3_destructor_type.self)
 
     /// Opens the database, or nil when it's unreadable (usually no Full Disk Access).
-    static func open() -> ChatDatabase? {
+    static func open(path: String = ChatDatabase.path) -> ChatDatabase? {
         var handle: OpaquePointer?
         let flags = SQLITE_OPEN_READONLY | SQLITE_OPEN_NOMUTEX
         guard sqlite3_open_v2(path, &handle, flags, nil) == SQLITE_OK, let handle else {
