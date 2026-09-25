@@ -1,0 +1,66 @@
+name: CI
+
+# Builds the iPhone app and the Mac relay and runs the ReminderCore tests.
+# The repository is public, so GitHub-hosted macOS minutes are free here. If the
+# repository becomes private they bill at 10x the Linux rate; the Linux job runs
+# first so a broken core fails fast and cheaply.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  core-tests:
+    name: ReminderCore tests (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    container: swift:latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run tests
+        run: swift test --package-path Packages/ReminderCore
+
+  apple-builds:
+    name: Build iPhone app and Mac relay
+    needs: core-tests
+    runs-on: macos-26
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Xcode version
+        run: xcodebuild -version
+
+      - name: ReminderCore tests (macOS)
+        run: swift test --package-path Packages/ReminderCore
+
+      # -quiet prints only warnings and errors. Signing is off: CI only checks
+      # that everything compiles; you sign with your own team in Xcode.
+      - name: Build iPhone app
+        run: >
+          xcodebuild build -quiet
+          -project BlueNudge.xcodeproj
+          -scheme BlueNudge
+          -configuration Debug
+          -destination 'generic/platform=iOS'
+          -derivedDataPath build/DerivedData
+          CODE_SIGNING_ALLOWED=NO
+
+      - name: Build Mac relay
+        run: >
+          xcodebuild build -quiet
+          -project BlueNudge.xcodeproj
+          -scheme BlueNudgeRelay
+          -configuration Debug
+          -destination 'generic/platform=macOS'
+          -derivedDataPath build/DerivedData
+          CODE_SIGNING_ALLOWED=NO

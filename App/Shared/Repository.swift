@@ -1,0 +1,186 @@
+import Foundation
+import SwiftData
+import ReminderCore
+
+/// Read/write helpers shared by the iPhone app and the Mac relay. Main-actor
+/// only, like the `ModelContext` it wraps.
+@MainActor
+struct Repository {
+    let context: ModelContext
+
+    init(context: ModelContext) {
+        self.context = context
+    }
+
+    // MARK: Settings
+
+    /// The single settings record, created on first use. Copies created on two
+    /// devices before they first synced are collapsed onto the oldest one.
+    @discardableResult
+    func settings() -> SharedSettings {
+        let descriptor = FetchDescriptor<SharedSettings>(sortBy: [SortDescriptor(\.createdAt, order: .forward)])
+        let all = (try? context.fetch(descriptor)) ?? []
+        if let first = all.first {
+            for duplicate in all.dropFirst() {
+                context.delete(duplicate)
+            }
+            if all.count > 1 { save() }
+            return first
+        }
+        let created = SharedSettings()
+        created.defaultCountryCode = CallingCodes.callingCode(forRegion: Locale.current.region?.identifier)
+        context.insert(created)
+        save()
+        return created
+    }
+
+    /// The settings record if one exists, without creating it. Use this from
+    /// view code, which must not insert models while rendering.
+    func existingSettings() -> SharedSettings? {
+        var descriptor = FetchDescriptor<SharedSettings>(sortBy: [SortDescriptor(\.createdAt, order: .forward)])
+        descriptor.fetchLimit = 1
+        return try? context.fetch(descriptor).first
+    }
+
+    // MARK: Fetching
+
+    func reminders() -> [Reminder] {
+        let descriptor = FetchDescriptor<Reminder>(sortBy: [SortDescriptor(\.createdAt, order: .forward)])
+        return (try? context.fetch(descriptor)) ?? []
+    }
+
+    func recipients() -> [Recipient] {
+        let descriptor = FetchDescriptor<Recipient>(sortBy: [SortDescriptor(\.name, order: .forward)])
+        return (try? context.fetch(descriptor)) ?? []
+    }
+
+    func recipientDirectory() -> [UUID: PlannerRecipient] {
+        var directory: [UUID: PlannerRecipient] = [:]
+        for recipient in recipients() {
+            directory[recipient.id] = recipient.plannerValue
+        }
+        return directory
+    }
+
+    func reminder(id: UUID) -> Reminder? {
+        let descriptor = FetchDescriptor<Reminder>(predicate: #Predicate { $0.id == id })
+        return try? context.fetch(descriptor).first
+    }
+
+    func recipient(id: UUID) -> Recipient? {
+        let descriptor = FetchDescriptor<Recipient>(predicate: #Predicate { $0.id == id })
+        return try? context.fetch(descriptor).first
+    }
+
+    /// Delivery records for occurrences at or after `date`.
+    func deliveries(since date: Date) -> [DeliveryRecord] {
+        let descriptor = FetchDescriptor<DeliveryRecord>(
+            predicate: #Predicate { $0.occurrenceDate >= date },
+            sortBy: [SortDescriptor(\.occurrenceDate, order: .reverse)]
+        )
+        return (try? context.fetch(descriptor)) ?? []
+    }
+
+    /// Occurrence keys already handled (by any device) since `date`.
+    func handledKeys(since date: Date) -> Set<String> {
+        Set(deliveries(since: date).map(\.occurrenceKey))
+    }
+
+    /// True when any device has already recorded this occurrence key.
+    func isHandled(_ key: String) -> Bool {
+        var descriptor = FetchDescriptor<DeliveryRecord>(predicate: #Predicate { $0.occurrenceKey == key })
+        descriptor.fetchLimit = 1
+        return ((try? context.fetchCount(descriptor)) ?? 0) > 0
+    }
+
+    func heartbeats() -> [RelayHeartbeat] {
+        let descriptor = FetchDescriptor<RelayHeartbeat>(sortBy: [SortDescriptor(\.lastSeen, order: .reverse)])
+        return (try? context.fetch(descriptor)) ?? []
+    }
+
+    /// The most recently seen relay, if any has ever checked in.
+    func latestHeartbeat() -> RelayHeartbeat? {
+        heartbeats().first
+    }
+
+    // MARK: Planning
+
+    /// Messages due for `method`, looking back `lookback` seconds.
+    func plan(method: DeliveryMethod, lookback: TimeInterval, grace: TimeInterval, now: Date = Date()) -> DuePlan {
+        let renderSettings = existingSettings()?.renderSettings() ?? RenderSettings()
+        let windowStart = now.addingTimeInterval(-lookback)
+        return DuePlanner.plan(
+            reminders: reminders().map(\.plannerValue),
+            recipients: recipientDirectory(),
+            method: method,
+            alreadyHandled: handledKeys(since: windowStart.addingTimeInterval(-86_400)),
+            windowStart: windowStart,
+            now: now,
+            grace: grace,
+            settings: renderSettings
+        )
+    }
+
+    // MARK: Writing
+
+    /// Records the outcome for one message. Returns the new record.
+    @discardableResult
+    func record(
+        _ message: PlannedMessage,
+        status: DeliveryStatus,
+        channel: DeliveryChannel,
+        deviceName: String,
+        error: String = ""
+    ) -> DeliveryRecord {
+        let record = DeliveryRecord(
+            message: message,
+            status: status,
+            channel: channel,
+            deviceName: deviceName,
+            errorMessage: error
+        )
+        context.insert(record)
+        return record
+    }
+
+    /// Deletes a recipient and removes it from every reminder that lists it.
+    func delete(_ recipient: Recipient) {
+        let id = recipient.id
+        for reminder in reminders() where reminder.recipientIDs.contains(id) {
+            reminder.recipientIDs = reminder.recipientIDs.filter { $0 != id }
+            reminder.updatedAt = Date()
+        }
+        context.delete(recipient)
+        save()
+    }
+
+    func delete(_ reminder: Reminder) {
+        context.delete(reminder)
+        save()
+    }
+
+    /// Drops delivery records older than the retention period.
+    func pruneDeliveries(olderThanDays days: Int, now: Date = Date()) {
+        guard days > 0 else { return }
+        let cutoff = now.addingTimeInterval(-Double(days) * 86_400)
+        let descriptor = FetchDescriptor<DeliveryRecord>(predicate: #Predicate { $0.occurrenceDate < cutoff })
+        guard let old = try? context.fetch(descriptor), !old.isEmpty else { return }
+        for record in old { context.delete(record) }
+        save()
+    }
+
+    /// Finds a recipient by any spelling of their phone number or email.
+    func recipient(matchingHandle handle: String, defaultCountryCode: String) -> Recipient? {
+        let normalized = HandleNormalizer.normalize(handle, defaultCountryCode: defaultCountryCode) ?? handle.lowercased()
+        return recipients().first { $0.handle == normalized }
+    }
+
+    func save() {
+        guard context.hasChanges else { return }
+        do {
+            try context.save()
+        } catch {
+            NSLog("BlueNudge: save failed: \(error)")
+        }
+    }
+}
