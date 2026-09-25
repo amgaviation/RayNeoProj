@@ -4,6 +4,7 @@
 #   xcodebuild build -project BlueNudge.xcodeproj -scheme BlueNudge -configuration Debug \
 #     -destination 'generic/platform=iOS Simulator' -derivedDataPath build/DerivedData
 # Usage: scripts/capture_screenshots.sh [output-folder]
+# Set DEMO_TZ (see demo_timezone.py) to run the sample data in that time zone.
 set -euo pipefail
 
 OUT="${1:-docs/screenshots}"
@@ -35,7 +36,15 @@ echo "Simulator: $UDID"
 
 xcrun simctl boot "$UDID" 2>/dev/null || true
 xcrun simctl bootstatus "$UDID" -b
-xcrun simctl status_bar "$UDID" override \
+CLOCK_ARGS=()
+if [ -n "${DEMO_TZ:-}" ]; then
+  # simctl passes SIMCTL_CHILD_* variables to the launched app.
+  export SIMCTL_CHILD_TZ="$DEMO_TZ"
+  CLOCK_ARGS=(--time "$(TZ="$DEMO_TZ" date +%-I:%M)")
+  echo "Time zone: $DEMO_TZ"
+fi
+# The ${a[@]+...} form keeps macOS bash 3.2 happy with an empty array under set -u.
+xcrun simctl status_bar "$UDID" override ${CLOCK_ARGS[@]+"${CLOCK_ARGS[@]}"} \
   --dataNetwork wifi --wifiMode active --wifiBars 3 \
   --cellularMode active --cellularBars 4 \
   --batteryState charged --batteryLevel 100 || true

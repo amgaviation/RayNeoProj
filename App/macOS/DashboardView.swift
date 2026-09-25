@@ -251,9 +251,9 @@ private struct RelayActivityView: View {
         VStack(spacing: 0) {
             Table(records) {
                 TableColumn("When") { record in
-                    Text((record.sentAt ?? record.createdAt).formatted(date: .abbreviated, time: .shortened))
+                    Text((record.sentAt ?? record.createdAt).formatted(.dateTime.month(.abbreviated).day().hour().minute()))
                 }
-                .width(min: 120, ideal: 140)
+                .width(min: 110, ideal: 120)
                 TableColumn("Reminder") { record in
                     Text(record.reminderTitle)
                 }
@@ -263,15 +263,16 @@ private struct RelayActivityView: View {
                         .foregroundStyle(.secondary)
                         .help(record.messageText)
                 }
+                .width(min: 120, ideal: 220)
                 TableColumn("Status") { record in
                     Text(record.status.title)
                         .foregroundStyle(color(for: record.status))
                 }
                 .width(min: 70, ideal: 90)
                 TableColumn("Via") { record in
-                    Text([record.channel.title, record.serviceUsed].filter { !$0.isEmpty }.joined(separator: " · "))
+                    Text(record.serviceUsed.isEmpty ? record.channel.title : record.serviceUsed)
                 }
-                .width(min: 80, ideal: 120)
+                .width(min: 70, ideal: 80)
                 TableColumn("Note") { record in
                     Text(record.errorMessage)
                         .foregroundStyle(.secondary)

@@ -267,7 +267,7 @@ final class RelayEngine: ObservableObject {
             }
         }
 
-        let name = message.recipientName.isEmpty ? message.handle : message.recipientName
+        let title = message.reminderTitle.isEmpty ? "reminder" : message.reminderTitle
         switch outcome {
         case .sent:
             record.status = .sent
@@ -281,15 +281,15 @@ final class RelayEngine: ObservableObject {
                     record.deliveredAt = row.deliveredAt ?? Date()
                 }
             }
-            log("Texted “\(message.reminderTitle)” to \(name) via \(record.serviceUsed).", problem: false)
+            log("Texted “\(title)” via \(record.serviceUsed).", problem: false)
         case .failed(let reason):
             record.status = .failed
             record.errorMessage = reason
-            log("Couldn't send “\(message.reminderTitle)” to \(name): \(reason)", problem: true)
+            log("Couldn't text “\(title)”: \(reason)", problem: true)
         case .timedOut:
             record.status = .sending
             record.errorMessage = "Messages didn't answer in time. Check Messages to see if it went out; it won't be retried automatically."
-            log("Messages didn't respond while sending to \(name).", problem: true)
+            log("Messages didn't respond while texting “\(title)”.", problem: true)
         }
         repository.save()
     }
@@ -339,13 +339,13 @@ final class RelayEngine: ObservableObject {
                         record.chatMessageGUID = ""
                         record.sentAt = Date()
                         record.errorMessage = "iMessage wasn't delivered, resent as SMS."
-                        log("Resent to \(record.displayRecipient) as SMS after iMessage failed.", problem: false)
+                        log("Resent “\(record.reminderTitle)” as SMS after iMessage failed.", problem: false)
                         continue
                     }
                 }
                 record.status = .failed
                 record.errorMessage = "Messages couldn't deliver it (error \(row.error)). The number may not use iMessage; try SMS fallback."
-                log("Delivery failed for \(record.displayRecipient) (error \(row.error)).", problem: true)
+                log("“\(record.reminderTitle)” wasn't delivered (error \(row.error)).", problem: true)
             } else if row.isDelivered {
                 if record.sentAt == nil { record.sentAt = row.date }
                 record.status = .delivered
@@ -518,7 +518,7 @@ final class RelayEngine: ObservableObject {
         events = sends.prefix(6).map { record in
             Event(
                 date: record.sentAt ?? record.createdAt,
-                text: "Texted “\(record.reminderTitle)” to \(record.displayRecipient) via \(record.serviceUsed).",
+                text: "Texted “\(record.reminderTitle)” via \(record.serviceUsed).",
                 isProblem: false
             )
         }

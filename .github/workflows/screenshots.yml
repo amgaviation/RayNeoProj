@@ -49,11 +49,16 @@ jobs:
           -derivedDataPath build/DerivedData
           CODE_SIGNING_ALLOWED=NO
 
+      - name: Pick a time zone where it's mid-morning
+        run: echo "DEMO_TZ=$(python3 scripts/demo_timezone.py)" >> "$GITHUB_ENV"
+
       - name: Capture iPhone screens
         run: scripts/capture_screenshots.sh build/screenshots
 
       - name: Capture Mac relay windows
         timeout-minutes: 5
+        env:
+          TZ: ${{ env.DEMO_TZ }}
         run: >
           "build/DerivedData/Build/Products/Debug/BlueNudge Relay.app/Contents/MacOS/BlueNudge Relay"
           -BlueNudgeDemo YES -BlueNudgeSnapshot "$PWD/build/screenshots"

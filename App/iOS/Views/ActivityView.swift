@@ -123,17 +123,15 @@ struct DeliveryRow: View {
     }
 
     private var detailLine: String {
-        var parts: [String] = []
-        parts.append("due \(record.occurrenceDate.formatted(date: .abbreviated, time: .shortened))")
-        if let delivered = record.deliveredAt {
-            parts.append("delivered \(delivered.formatted(date: .omitted, time: .shortened))")
-        } else if let sent = record.sentAt {
+        var parts = ["Due \(record.occurrenceDate.formatted(date: .omitted, time: .shortened))"]
+        // Only worth saying when it went out noticeably late.
+        if let sent = record.sentAt, sent.timeIntervalSince(record.occurrenceDate) > 120 {
             parts.append("sent \(sent.formatted(date: .omitted, time: .shortened))")
         }
-        var via = record.channel.title
-        if !record.serviceUsed.isEmpty { via += " · \(record.serviceUsed)" }
-        if !record.deviceName.isEmpty, record.channel == .relay { via += " (\(record.deviceName))" }
-        parts.append(via)
+        parts.append(record.serviceUsed.isEmpty ? record.channel.title : record.serviceUsed)
+        if !record.deviceName.isEmpty, record.channel == .relay {
+            parts.append(record.deviceName)
+        }
         return parts.joined(separator: " · ")
     }
 }

@@ -166,19 +166,26 @@ struct TodayView: View {
         let date: Date
     }
 
+    /// The next few occurrences, at most two per reminder so an hourly one
+    /// doesn't crowd out the rest.
     private func upcomingItems(now: Date) -> [UpcomingItem] {
         var byID: [UUID: Reminder] = [:]
         for reminder in reminders { byID[reminder.id] = reminder }
-        return DuePlanner.upcoming(
+        var perReminder: [UUID: Int] = [:]
+        var items: [UpcomingItem] = []
+        for item in DuePlanner.upcoming(
             reminders: reminders.map(\.plannerValue),
             method: nil,
             after: now,
             horizon: 14 * 86_400,
-            limit: 10
-        ).compactMap { item in
-            guard let reminder = byID[item.reminderID] else { return nil }
-            return UpcomingItem(id: "\(item.reminderID)-\(item.occurrence.timeIntervalSince1970)", reminder: reminder, date: item.occurrence)
+            limit: 60
+        ) {
+            guard let reminder = byID[item.reminderID], perReminder[item.reminderID, default: 0] < 2 else { continue }
+            perReminder[item.reminderID, default: 0] += 1
+            items.append(UpcomingItem(id: "\(item.reminderID)-\(item.occurrence.timeIntervalSince1970)", reminder: reminder, date: item.occurrence))
+            if items.count == 8 { break }
         }
+        return items
     }
 }
 
