@@ -1,0 +1,862 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0329981595A5549A834A0ED9 /* TextMeIntent.swift in Sources */ = {isa = PBXBuildFile; fileRef = A26D6AE30DD9D43037E78DD0 /* TextMeIntent.swift */; };
+		07D5CA757815CE49B1C97B46 /* TextingAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D7FC33B4BF0F0169B1A497A /* TextingAPI.swift */; };
+		07ED97E0D42BBAE5C7F5E477 /* ReplyHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 304E65345C8F6D4EB269AA84 /* ReplyHandler.swift */; };
+		087CA5112BAC0B14ACF0ADB4 /* MyNumberView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4748D87F34336D1D70C0CAE2 /* MyNumberView.swift */; };
+		08F2C4814CDA026053BFE957 /* TextingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 485D8EC8F7184423C6067697 /* TextingTests.swift */; };
+		0A40A7CB2B48DCAF9390C7D6 /* OutboxPlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = B859C363271253316B567320 /* OutboxPlanner.swift */; };
+		0EE48378E5C62FEF12B39A39 /* Repository.swift in Sources */ = {isa = PBXBuildFile; fileRef = D29A372D196C7BF3CD22BD38 /* Repository.swift */; };
+		1206BC26BF6D118D7D052E8D /* ReminderCore in Frameworks */ = {isa = PBXBuildFile; productRef = E84E5EFF651CE914207B1398 /* ReminderCore */; };
+		12739F17EC39F0A523EFCACC /* OutboxPlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = B859C363271253316B567320 /* OutboxPlanner.swift */; };
+		16B1D503F5767E57FDAE0EE5 /* DeviceInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = E85F0CD75E2A4FE9412EF667 /* DeviceInfo.swift */; };
+		1949902B629677EA0624292E /* DeviceInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = E85F0CD75E2A4FE9412EF667 /* DeviceInfo.swift */; };
+		1D48AE2FF204153E45134BB1 /* RelayTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A06309FFE507B4F0409FD966 /* RelayTests.swift */; };
+		21DD6FEED26BA30D3F6047E7 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AACCE51C2DAF080D1B521E17 /* RootView.swift */; };
+		23FF7C16FD0049469EA712D6 /* OutboxPlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = B859C363271253316B567320 /* OutboxPlanner.swift */; };
+		242A031AA694A4C56F94247B /* AppState.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1E2219416306B7480B16A938 /* AppState.swift */; };
+		244166B1A7DA815BCAA9EF1B /* TextingAccount.swift in Sources */ = {isa = PBXBuildFile; fileRef = 221256CD3F0B10603E657677 /* TextingAccount.swift */; };
+		25EBF7E6E2D9CA6BA15F3E69 /* DemoData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45089D1DF8C146910807CF60 /* DemoData.swift */; };
+		272F5F9481D81F31B94FEF9A /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0BB26F07BF12AFAEC0883A3D /* DashboardView.swift */; };
+		28D4B69773A2DAAE8103EB86 /* AlarmScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = D72166F3EC27621E7EEDCB2E /* AlarmScheduler.swift */; };
+		2EBD548F1A29DE83DF0C1C2E /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 866C787EA49DBB5D1D2D9E31 /* Components.swift */; };
+		42DBCF9DC962F93AA042D32E /* Repository.swift in Sources */ = {isa = PBXBuildFile; fileRef = D29A372D196C7BF3CD22BD38 /* Repository.swift */; };
+		4425012FD5C77E8FD3036EA0 /* DeviceInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = E85F0CD75E2A4FE9412EF667 /* DeviceInfo.swift */; };
+		4E848A474F11165DAF916588 /* DataStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE45D22BA71C5658EB087121 /* DataStore.swift */; };
+		50A51AC9EE7E3E2265A21982 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5244ECA2C53970DEC762DE /* Models.swift */; };
+		528B314B011D7EE027C11546 /* DemoData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45089D1DF8C146910807CF60 /* DemoData.swift */; };
+		5346E57CC752CE51191540AC /* RepositoryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C469A5338C95586465AA982D /* RepositoryTests.swift */; };
+		54E5489159C56AA8D082340B /* ReminderCore in Frameworks */ = {isa = PBXBuildFile; productRef = DEC5DF4460BAD2D4DA9EDC5F /* ReminderCore */; };
+		59659CA917A8BF4822B640D7 /* Repository.swift in Sources */ = {isa = PBXBuildFile; fileRef = D29A372D196C7BF3CD22BD38 /* Repository.swift */; };
+		5ECCEAFBB3F79D7E65DCE5FA /* ChatDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1374B83B20D269E7C2F37DC8 /* ChatDatabase.swift */; };
+		5EEE81211C2CB46E9806DF01 /* ChatDatabase.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1374B83B20D269E7C2F37DC8 /* ChatDatabase.swift */; };
+		5F8DE01622076A6691E215CA /* Keychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17D220C22B83AEDE6ED644F7 /* Keychain.swift */; };
+		609E01CF9DC10A105A93C645 /* TodayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E492B33149D3490E27E3CEA8 /* TodayView.swift */; };
+		67F78EAFC0EB67E583B36135 /* DemoData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45089D1DF8C146910807CF60 /* DemoData.swift */; };
+		760C45300C4D3AD4D271EB81 /* SubscriptionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3C759899C8F60F01951C3813 /* SubscriptionStore.swift */; };
+		79340820CC69928140833E8A /* ActivityEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0221162EAB0F9FCE633D287A /* ActivityEntry.swift */; };
+		79AB14A1867004503106A043 /* DataStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE45D22BA71C5658EB087121 /* DataStore.swift */; };
+		79CA203AA1948FFEB84B0B78 /* SyncMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75020BC42289C086A8C2785E /* SyncMonitor.swift */; };
+		7EE660DF3B37266ED376C36E /* DemoSnapshots.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6AF424F2A5E479D39A62AD03 /* DemoSnapshots.swift */; };
+		85B0CFDD388D82020E1EC820 /* MessagesSender.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46976910A11354C672566468 /* MessagesSender.swift */; };
+		866D5D24F51079C6679322ED /* RelaySupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4CE225AA9A48C78C148CC1EB /* RelaySupport.swift */; };
+		8E799769CC19F0C4371F1D20 /* RelayEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7EB6D8CE604BD9969F0801E7 /* RelayEngine.swift */; };
+		8F685B1A3F0F2BC93D1ABC79 /* ReminderEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D953C744C1767EF899319689 /* ReminderEditorView.swift */; };
+		8F96B1FC2A48DDA32C5ABE2A /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5244ECA2C53970DEC762DE /* Models.swift */; };
+		923E7F0E81C1AB115B8A4649 /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A5244ECA2C53970DEC762DE /* Models.swift */; };
+		93EA347976061BE3D7FD713A /* ActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 958E0C5CA2EC51969BB8FEFE /* ActivityView.swift */; };
+		96EDFD7627463DA878897782 /* RemindersListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9046C9B7B4C16B5B4603A88D /* RemindersListView.swift */; };
+		A04C3F40B103016CBF4431C0 /* BackgroundRefresh.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1131913B2010F9A81FBF4B77 /* BackgroundRefresh.swift */; };
+		A07E90FE5EEA6D54DA88746F /* ReplyHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 304E65345C8F6D4EB269AA84 /* ReplyHandler.swift */; };
+		A11174AA7B6874904BE271DD /* SyncMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75020BC42289C086A8C2785E /* SyncMonitor.swift */; };
+		A1F73E4EA796423959669038 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7D35E99266DCF5F1CFB3A317 /* SettingsView.swift */; };
+		A6A999B1FDD6A9BD827966B4 /* RelayApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D91840F433A52A9D669E9247 /* RelayApp.swift */; };
+		A7B0E37BC82C4017CD855BFE /* BlueNudgeApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 21CD4796B6C53E3A5CF551EC /* BlueNudgeApp.swift */; };
+		B0EA23EE7DEAC283C32DE7CE /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 61B58E670854DE468F042E1A /* Assets.xcassets */; };
+		B1E0B924D3C274CE0330057D /* ReplyHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 304E65345C8F6D4EB269AA84 /* ReplyHandler.swift */; };
+		CB88DE0169F21852ADDCC034 /* NotificationScheduler.swift in Sources */ = {isa = PBXBuildFile; fileRef = E90D4CB162FEE77C0E408D96 /* NotificationScheduler.swift */; };
+		D6AA5D9FE3CD3BC909B55920 /* TextingAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D7FC33B4BF0F0169B1A497A /* TextingAPI.swift */; };
+		DC76856D5A9AD3253B04021B /* ActivityEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0221162EAB0F9FCE633D287A /* ActivityEntry.swift */; };
+		DF353F62E4D7BC8EFCCC811D /* DataStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE45D22BA71C5658EB087121 /* DataStore.swift */; };
+		E6BB68DC9007EB7F58D05C3E /* SyncMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75020BC42289C086A8C2785E /* SyncMonitor.swift */; };
+		E6D67167BFE2D48E213AACDF /* TextingAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D7FC33B4BF0F0169B1A497A /* TextingAPI.swift */; };
+		E8C7EB2E3FB277E613CAFBAA /* MessagesSender.swift in Sources */ = {isa = PBXBuildFile; fileRef = 46976910A11354C672566468 /* MessagesSender.swift */; };
+		EDFEA97EFBE4E36884CEAD64 /* SelfReminderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05C04A6DB6007494443CD2C7 /* SelfReminderTests.swift */; };
+		EE956B652A7774D57BFEB574 /* ActivityEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0221162EAB0F9FCE633D287A /* ActivityEntry.swift */; };
+		F2C0551799EAD43BF50CBE40 /* ReminderCore in Frameworks */ = {isa = PBXBuildFile; productRef = BE7E35B44BB628F30BC66D87 /* ReminderCore */; };
+		FA0AC10D55CF4F8BC6684FEE /* TextingAccountView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7ED6E6816B6DEA1DB13D0B33 /* TextingAccountView.swift */; };
+		FCB3C015D25C40899B0F638A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 99EBDDF64D11CC0853683B6A /* Assets.xcassets */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		0221162EAB0F9FCE633D287A /* ActivityEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityEntry.swift; sourceTree = "<group>"; };
+		05C04A6DB6007494443CD2C7 /* SelfReminderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfReminderTests.swift; sourceTree = "<group>"; };
+		0BB26F07BF12AFAEC0883A3D /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
+		0CCC119CE189868D9CF96144 /* BlueNudgeTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = BlueNudgeTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		11262D3B18B42364741EFEB9 /* ReminderCore */ = {isa = PBXFileReference; lastKnownFileType = folder; name = ReminderCore; path = Packages/ReminderCore; sourceTree = SOURCE_ROOT; };
+		1131913B2010F9A81FBF4B77 /* BackgroundRefresh.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BackgroundRefresh.swift; sourceTree = "<group>"; };
+		1374B83B20D269E7C2F37DC8 /* ChatDatabase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatDatabase.swift; sourceTree = "<group>"; };
+		17D220C22B83AEDE6ED644F7 /* Keychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keychain.swift; sourceTree = "<group>"; };
+		1E2219416306B7480B16A938 /* AppState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppState.swift; sourceTree = "<group>"; };
+		21CD4796B6C53E3A5CF551EC /* BlueNudgeApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BlueNudgeApp.swift; sourceTree = "<group>"; };
+		221256CD3F0B10603E657677 /* TextingAccount.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextingAccount.swift; sourceTree = "<group>"; };
+		304E65345C8F6D4EB269AA84 /* ReplyHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReplyHandler.swift; sourceTree = "<group>"; };
+		3C759899C8F60F01951C3813 /* SubscriptionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SubscriptionStore.swift; sourceTree = "<group>"; };
+		3FDEED67B48D4E6CCF56121C /* BlueNudge.storekit */ = {isa = PBXFileReference; path = BlueNudge.storekit; sourceTree = "<group>"; };
+		45089D1DF8C146910807CF60 /* DemoData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoData.swift; sourceTree = "<group>"; };
+		46976910A11354C672566468 /* MessagesSender.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MessagesSender.swift; sourceTree = "<group>"; };
+		4748D87F34336D1D70C0CAE2 /* MyNumberView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyNumberView.swift; sourceTree = "<group>"; };
+		485D8EC8F7184423C6067697 /* TextingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextingTests.swift; sourceTree = "<group>"; };
+		4CE225AA9A48C78C148CC1EB /* RelaySupport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelaySupport.swift; sourceTree = "<group>"; };
+		59AE4D9C8C6057573F59BA00 /* BlueNudgeRelay.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BlueNudgeRelay.entitlements; sourceTree = "<group>"; };
+		61B58E670854DE468F042E1A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		6AF424F2A5E479D39A62AD03 /* DemoSnapshots.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoSnapshots.swift; sourceTree = "<group>"; };
+		6D7FC33B4BF0F0169B1A497A /* TextingAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextingAPI.swift; sourceTree = "<group>"; };
+		75020BC42289C086A8C2785E /* SyncMonitor.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyncMonitor.swift; sourceTree = "<group>"; };
+		7A5244ECA2C53970DEC762DE /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		7D35E99266DCF5F1CFB3A317 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
+		7EB6D8CE604BD9969F0801E7 /* RelayEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelayEngine.swift; sourceTree = "<group>"; };
+		7ED6E6816B6DEA1DB13D0B33 /* TextingAccountView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextingAccountView.swift; sourceTree = "<group>"; };
+		866C787EA49DBB5D1D2D9E31 /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
+		9046C9B7B4C16B5B4603A88D /* RemindersListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RemindersListView.swift; sourceTree = "<group>"; };
+		958E0C5CA2EC51969BB8FEFE /* ActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityView.swift; sourceTree = "<group>"; };
+		99EBDDF64D11CC0853683B6A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		9F10DA635D140DD328DFEA08 /* BlueNudgeRelay.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = BlueNudgeRelay.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A06309FFE507B4F0409FD966 /* RelayTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelayTests.swift; sourceTree = "<group>"; };
+		A26D6AE30DD9D43037E78DD0 /* TextMeIntent.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TextMeIntent.swift; sourceTree = "<group>"; };
+		AACCE51C2DAF080D1B521E17 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		B859C363271253316B567320 /* OutboxPlanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutboxPlanner.swift; sourceTree = "<group>"; };
+		C469A5338C95586465AA982D /* RepositoryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RepositoryTests.swift; sourceTree = "<group>"; };
+		D29A372D196C7BF3CD22BD38 /* Repository.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Repository.swift; sourceTree = "<group>"; };
+		D439752737CDAAAF27EB8A0C /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		D72166F3EC27621E7EEDCB2E /* AlarmScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlarmScheduler.swift; sourceTree = "<group>"; };
+		D91840F433A52A9D669E9247 /* RelayApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RelayApp.swift; sourceTree = "<group>"; };
+		D953C744C1767EF899319689 /* ReminderEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReminderEditorView.swift; sourceTree = "<group>"; };
+		E492B33149D3490E27E3CEA8 /* TodayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TodayView.swift; sourceTree = "<group>"; };
+		E85F0CD75E2A4FE9412EF667 /* DeviceInfo.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeviceInfo.swift; sourceTree = "<group>"; };
+		E90D4CB162FEE77C0E408D96 /* NotificationScheduler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationScheduler.swift; sourceTree = "<group>"; };
+		E9935844FB209291D8FEE82F /* BlueNudge.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = BlueNudge.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		EA3110451460C1C761ABD587 /* BlueNudge.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = BlueNudge.entitlements; sourceTree = "<group>"; };
+		EE45D22BA71C5658EB087121 /* DataStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DataStore.swift; sourceTree = "<group>"; };
+		F62E81886DD8E2C77C9276F4 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		6726DB3E87BDEB2164C84334 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1206BC26BF6D118D7D052E8D /* ReminderCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A6A7294B670539FD5C8EE442 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				54E5489159C56AA8D082340B /* ReminderCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		B45E3480FE78A0BD34178D4B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F2C0551799EAD43BF50CBE40 /* ReminderCore in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		199C27EF03C75EEAD84ECD9C = {
+			isa = PBXGroup;
+			children = (
+				820E67233FC25B83BD574936 /* App */,
+				D9C341211779D211D3567841 /* Packages */,
+				6F71F050DF36C2E6720629BE /* StoreKit */,
+				F02C19421226AABE200D8D54 /* Tests */,
+				D29C928E38503ECBF3E1911E /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		2D1F37B6A8F2D5C4AB0AAC18 /* Support */ = {
+			isa = PBXGroup;
+			children = (
+				D72166F3EC27621E7EEDCB2E /* AlarmScheduler.swift */,
+				1131913B2010F9A81FBF4B77 /* BackgroundRefresh.swift */,
+				17D220C22B83AEDE6ED644F7 /* Keychain.swift */,
+				E90D4CB162FEE77C0E408D96 /* NotificationScheduler.swift */,
+				3C759899C8F60F01951C3813 /* SubscriptionStore.swift */,
+				221256CD3F0B10603E657677 /* TextingAccount.swift */,
+			);
+			path = Support;
+			sourceTree = "<group>";
+		};
+		40CE45B3A7E0DD7264B0E1FF /* Intents */ = {
+			isa = PBXGroup;
+			children = (
+				A26D6AE30DD9D43037E78DD0 /* TextMeIntent.swift */,
+			);
+			path = Intents;
+			sourceTree = "<group>";
+		};
+		6F71F050DF36C2E6720629BE /* StoreKit */ = {
+			isa = PBXGroup;
+			children = (
+				3FDEED67B48D4E6CCF56121C /* BlueNudge.storekit */,
+			);
+			path = StoreKit;
+			sourceTree = "<group>";
+		};
+		820E67233FC25B83BD574936 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				D2D2FF1B2A2A51EFF816BC3F /* iOS */,
+				95D11B9162FAA8745C1F54B9 /* macOS */,
+				D8BB150B6A3AEAC3D53608A1 /* Shared */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		823417470C548CA8B2F21EB1 /* BlueNudgeTests */ = {
+			isa = PBXGroup;
+			children = (
+				A06309FFE507B4F0409FD966 /* RelayTests.swift */,
+				C469A5338C95586465AA982D /* RepositoryTests.swift */,
+				05C04A6DB6007494443CD2C7 /* SelfReminderTests.swift */,
+				485D8EC8F7184423C6067697 /* TextingTests.swift */,
+			);
+			path = BlueNudgeTests;
+			sourceTree = "<group>";
+		};
+		951C1E8E36B46FC9134D10C8 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				958E0C5CA2EC51969BB8FEFE /* ActivityView.swift */,
+				866C787EA49DBB5D1D2D9E31 /* Components.swift */,
+				4748D87F34336D1D70C0CAE2 /* MyNumberView.swift */,
+				D953C744C1767EF899319689 /* ReminderEditorView.swift */,
+				9046C9B7B4C16B5B4603A88D /* RemindersListView.swift */,
+				AACCE51C2DAF080D1B521E17 /* RootView.swift */,
+				7D35E99266DCF5F1CFB3A317 /* SettingsView.swift */,
+				7ED6E6816B6DEA1DB13D0B33 /* TextingAccountView.swift */,
+				E492B33149D3490E27E3CEA8 /* TodayView.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		95D11B9162FAA8745C1F54B9 /* macOS */ = {
+			isa = PBXGroup;
+			children = (
+				61B58E670854DE468F042E1A /* Assets.xcassets */,
+				59AE4D9C8C6057573F59BA00 /* BlueNudgeRelay.entitlements */,
+				1374B83B20D269E7C2F37DC8 /* ChatDatabase.swift */,
+				0BB26F07BF12AFAEC0883A3D /* DashboardView.swift */,
+				6AF424F2A5E479D39A62AD03 /* DemoSnapshots.swift */,
+				D439752737CDAAAF27EB8A0C /* Info.plist */,
+				46976910A11354C672566468 /* MessagesSender.swift */,
+				D91840F433A52A9D669E9247 /* RelayApp.swift */,
+				7EB6D8CE604BD9969F0801E7 /* RelayEngine.swift */,
+				4CE225AA9A48C78C148CC1EB /* RelaySupport.swift */,
+			);
+			path = macOS;
+			sourceTree = "<group>";
+		};
+		CA06C1D075EEC852D2FB69AF /* Texting */ = {
+			isa = PBXGroup;
+			children = (
+				B859C363271253316B567320 /* OutboxPlanner.swift */,
+				6D7FC33B4BF0F0169B1A497A /* TextingAPI.swift */,
+			);
+			path = Texting;
+			sourceTree = "<group>";
+		};
+		D29C928E38503ECBF3E1911E /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				E9935844FB209291D8FEE82F /* BlueNudge.app */,
+				9F10DA635D140DD328DFEA08 /* BlueNudgeRelay.app */,
+				0CCC119CE189868D9CF96144 /* BlueNudgeTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		D2D2FF1B2A2A51EFF816BC3F /* iOS */ = {
+			isa = PBXGroup;
+			children = (
+				40CE45B3A7E0DD7264B0E1FF /* Intents */,
+				2D1F37B6A8F2D5C4AB0AAC18 /* Support */,
+				951C1E8E36B46FC9134D10C8 /* Views */,
+				1E2219416306B7480B16A938 /* AppState.swift */,
+				99EBDDF64D11CC0853683B6A /* Assets.xcassets */,
+				EA3110451460C1C761ABD587 /* BlueNudge.entitlements */,
+				21CD4796B6C53E3A5CF551EC /* BlueNudgeApp.swift */,
+				F62E81886DD8E2C77C9276F4 /* Info.plist */,
+			);
+			path = iOS;
+			sourceTree = "<group>";
+		};
+		D8BB150B6A3AEAC3D53608A1 /* Shared */ = {
+			isa = PBXGroup;
+			children = (
+				CA06C1D075EEC852D2FB69AF /* Texting */,
+				0221162EAB0F9FCE633D287A /* ActivityEntry.swift */,
+				EE45D22BA71C5658EB087121 /* DataStore.swift */,
+				45089D1DF8C146910807CF60 /* DemoData.swift */,
+				E85F0CD75E2A4FE9412EF667 /* DeviceInfo.swift */,
+				7A5244ECA2C53970DEC762DE /* Models.swift */,
+				304E65345C8F6D4EB269AA84 /* ReplyHandler.swift */,
+				D29A372D196C7BF3CD22BD38 /* Repository.swift */,
+				75020BC42289C086A8C2785E /* SyncMonitor.swift */,
+			);
+			path = Shared;
+			sourceTree = "<group>";
+		};
+		D9C341211779D211D3567841 /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				11262D3B18B42364741EFEB9 /* ReminderCore */,
+			);
+			path = Packages;
+			sourceTree = "<group>";
+		};
+		F02C19421226AABE200D8D54 /* Tests */ = {
+			isa = PBXGroup;
+			children = (
+				823417470C548CA8B2F21EB1 /* BlueNudgeTests */,
+			);
+			path = Tests;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		304018095A4BE491EE0E874D /* BlueNudge */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = CB9EAD1DB3F793E43FD67B2B /* Build configuration list for PBXNativeTarget "BlueNudge" */;
+			buildPhases = (
+				472BD161334DE8F25861BEB1 /* Sources */,
+				54C53761886FCD936996E2D2 /* Resources */,
+				A6A7294B670539FD5C8EE442 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = BlueNudge;
+			packageProductDependencies = (
+				DEC5DF4460BAD2D4DA9EDC5F /* ReminderCore */,
+			);
+			productName = BlueNudge;
+			productReference = E9935844FB209291D8FEE82F /* BlueNudge.app */;
+			productType = "com.apple.product-type.application";
+		};
+		7E5D0CA49DF389CA70407F12 /* BlueNudgeTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 792EC7D82C0708573627639C /* Build configuration list for PBXNativeTarget "BlueNudgeTests" */;
+			buildPhases = (
+				F09F39CEF8D0203825D3581B /* Sources */,
+				B45E3480FE78A0BD34178D4B /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = BlueNudgeTests;
+			packageProductDependencies = (
+				BE7E35B44BB628F30BC66D87 /* ReminderCore */,
+			);
+			productName = BlueNudgeTests;
+			productReference = 0CCC119CE189868D9CF96144 /* BlueNudgeTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		B58AFCC21B35E099E9468E0C /* BlueNudgeRelay */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B1E492FD21E8EA30A543EA07 /* Build configuration list for PBXNativeTarget "BlueNudgeRelay" */;
+			buildPhases = (
+				DAA6B31EDD2053B2DB2A6338 /* Sources */,
+				532CC2A44797BAF1322E67F5 /* Resources */,
+				6726DB3E87BDEB2164C84334 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = BlueNudgeRelay;
+			packageProductDependencies = (
+				E84E5EFF651CE914207B1398 /* ReminderCore */,
+			);
+			productName = BlueNudgeRelay;
+			productReference = 9F10DA635D140DD328DFEA08 /* BlueNudgeRelay.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		E3F0F89444F2FCF7EF7C3A32 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					304018095A4BE491EE0E874D = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+					7E5D0CA49DF389CA70407F12 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+					B58AFCC21B35E099E9468E0C = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = A3E39F4BC04190BB8DD24E14 /* Build configuration list for PBXProject "BlueNudge" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 199C27EF03C75EEAD84ECD9C;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				B32DD91D71AEDC0702CBA098 /* XCLocalSwiftPackageReference "Packages/ReminderCore" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = D29C928E38503ECBF3E1911E /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				304018095A4BE491EE0E874D /* BlueNudge */,
+				B58AFCC21B35E099E9468E0C /* BlueNudgeRelay */,
+				7E5D0CA49DF389CA70407F12 /* BlueNudgeTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		532CC2A44797BAF1322E67F5 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				B0EA23EE7DEAC283C32DE7CE /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		54C53761886FCD936996E2D2 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FCB3C015D25C40899B0F638A /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		472BD161334DE8F25861BEB1 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DC76856D5A9AD3253B04021B /* ActivityEntry.swift in Sources */,
+				93EA347976061BE3D7FD713A /* ActivityView.swift in Sources */,
+				28D4B69773A2DAAE8103EB86 /* AlarmScheduler.swift in Sources */,
+				242A031AA694A4C56F94247B /* AppState.swift in Sources */,
+				A04C3F40B103016CBF4431C0 /* BackgroundRefresh.swift in Sources */,
+				A7B0E37BC82C4017CD855BFE /* BlueNudgeApp.swift in Sources */,
+				2EBD548F1A29DE83DF0C1C2E /* Components.swift in Sources */,
+				4E848A474F11165DAF916588 /* DataStore.swift in Sources */,
+				25EBF7E6E2D9CA6BA15F3E69 /* DemoData.swift in Sources */,
+				16B1D503F5767E57FDAE0EE5 /* DeviceInfo.swift in Sources */,
+				5F8DE01622076A6691E215CA /* Keychain.swift in Sources */,
+				8F96B1FC2A48DDA32C5ABE2A /* Models.swift in Sources */,
+				087CA5112BAC0B14ACF0ADB4 /* MyNumberView.swift in Sources */,
+				CB88DE0169F21852ADDCC034 /* NotificationScheduler.swift in Sources */,
+				0A40A7CB2B48DCAF9390C7D6 /* OutboxPlanner.swift in Sources */,
+				8F685B1A3F0F2BC93D1ABC79 /* ReminderEditorView.swift in Sources */,
+				96EDFD7627463DA878897782 /* RemindersListView.swift in Sources */,
+				A07E90FE5EEA6D54DA88746F /* ReplyHandler.swift in Sources */,
+				42DBCF9DC962F93AA042D32E /* Repository.swift in Sources */,
+				21DD6FEED26BA30D3F6047E7 /* RootView.swift in Sources */,
+				A1F73E4EA796423959669038 /* SettingsView.swift in Sources */,
+				760C45300C4D3AD4D271EB81 /* SubscriptionStore.swift in Sources */,
+				A11174AA7B6874904BE271DD /* SyncMonitor.swift in Sources */,
+				0329981595A5549A834A0ED9 /* TextMeIntent.swift in Sources */,
+				E6D67167BFE2D48E213AACDF /* TextingAPI.swift in Sources */,
+				244166B1A7DA815BCAA9EF1B /* TextingAccount.swift in Sources */,
+				FA0AC10D55CF4F8BC6684FEE /* TextingAccountView.swift in Sources */,
+				609E01CF9DC10A105A93C645 /* TodayView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		DAA6B31EDD2053B2DB2A6338 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				EE956B652A7774D57BFEB574 /* ActivityEntry.swift in Sources */,
+				5EEE81211C2CB46E9806DF01 /* ChatDatabase.swift in Sources */,
+				272F5F9481D81F31B94FEF9A /* DashboardView.swift in Sources */,
+				DF353F62E4D7BC8EFCCC811D /* DataStore.swift in Sources */,
+				67F78EAFC0EB67E583B36135 /* DemoData.swift in Sources */,
+				7EE660DF3B37266ED376C36E /* DemoSnapshots.swift in Sources */,
+				1949902B629677EA0624292E /* DeviceInfo.swift in Sources */,
+				E8C7EB2E3FB277E613CAFBAA /* MessagesSender.swift in Sources */,
+				923E7F0E81C1AB115B8A4649 /* Models.swift in Sources */,
+				12739F17EC39F0A523EFCACC /* OutboxPlanner.swift in Sources */,
+				A6A999B1FDD6A9BD827966B4 /* RelayApp.swift in Sources */,
+				8E799769CC19F0C4371F1D20 /* RelayEngine.swift in Sources */,
+				866D5D24F51079C6679322ED /* RelaySupport.swift in Sources */,
+				07ED97E0D42BBAE5C7F5E477 /* ReplyHandler.swift in Sources */,
+				59659CA917A8BF4822B640D7 /* Repository.swift in Sources */,
+				79CA203AA1948FFEB84B0B78 /* SyncMonitor.swift in Sources */,
+				07D5CA757815CE49B1C97B46 /* TextingAPI.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		F09F39CEF8D0203825D3581B /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				79340820CC69928140833E8A /* ActivityEntry.swift in Sources */,
+				5ECCEAFBB3F79D7E65DCE5FA /* ChatDatabase.swift in Sources */,
+				79AB14A1867004503106A043 /* DataStore.swift in Sources */,
+				528B314B011D7EE027C11546 /* DemoData.swift in Sources */,
+				4425012FD5C77E8FD3036EA0 /* DeviceInfo.swift in Sources */,
+				85B0CFDD388D82020E1EC820 /* MessagesSender.swift in Sources */,
+				50A51AC9EE7E3E2265A21982 /* Models.swift in Sources */,
+				23FF7C16FD0049469EA712D6 /* OutboxPlanner.swift in Sources */,
+				1D48AE2FF204153E45134BB1 /* RelayTests.swift in Sources */,
+				B1E0B924D3C274CE0330057D /* ReplyHandler.swift in Sources */,
+				0EE48378E5C62FEF12B39A39 /* Repository.swift in Sources */,
+				5346E57CC752CE51191540AC /* RepositoryTests.swift in Sources */,
+				EDFEA97EFBE4E36884CEAD64 /* SelfReminderTests.swift in Sources */,
+				E6BB68DC9007EB7F58D05C3E /* SyncMonitor.swift in Sources */,
+				D6AA5D9FE3CD3BC909B55920 /* TextingAPI.swift in Sources */,
+				08F2C4814CDA026053BFE957 /* TextingTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		181BF848735F5DE0FF5AA85C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = App/iOS/BlueNudge.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = App/iOS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-weak_framework",
+					AlarmKit,
+				);
+				PRIVACY_POLICY_URL = "";
+				PRODUCT_BUNDLE_IDENTIFIER = com.amgaviationgroup.bluenudge;
+				SDKROOT = iphoneos;
+				SUBSCRIPTION_PRODUCT_IDS = "com.amgaviationgroup.bluenudge.texts.monthly,com.amgaviationgroup.bluenudge.texts.yearly";
+				SUPABASE_PUBLISHABLE_KEY = "";
+				SUPABASE_URL = "";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TERMS_URL = "";
+				TEXTING_CALLING_CODES = 1;
+			};
+			name = Debug;
+		};
+		24FEA76CC9D8FCC53B056B8C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = App/macOS/BlueNudgeRelay.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = App/macOS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.amgaviationgroup.bluenudge.relay;
+				PRODUCT_NAME = "BlueNudge Relay";
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		502B3E57DA1A45B57CA7A626 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.amgaviationgroup.bluenudge.tests;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		5AB9AF093118CEBA07291FE5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = App/iOS/BlueNudge.entitlements;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				INFOPLIST_FILE = App/iOS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				OTHER_LDFLAGS = (
+					"$(inherited)",
+					"-weak_framework",
+					AlarmKit,
+				);
+				PRIVACY_POLICY_URL = "";
+				PRODUCT_BUNDLE_IDENTIFIER = com.amgaviationgroup.bluenudge;
+				SDKROOT = iphoneos;
+				SUBSCRIPTION_PRODUCT_IDS = "com.amgaviationgroup.bluenudge.texts.monthly,com.amgaviationgroup.bluenudge.texts.yearly";
+				SUPABASE_PUBLISHABLE_KEY = "";
+				SUPABASE_URL = "";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TERMS_URL = "";
+				TEXTING_CALLING_CODES = 1;
+			};
+			name = Release;
+		};
+		86739DEEAF4D25B07C7840AD /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = App/macOS/BlueNudgeRelay.entitlements;
+				COMBINE_HIDPI_IMAGES = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				INFOPLIST_FILE = App/macOS/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.amgaviationgroup.bluenudge.relay;
+				PRODUCT_NAME = "BlueNudge Relay";
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		A199E831BB010A99DCF9FACE /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = "";
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		BCF229E9BFEDF9C60D2DBF6E /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEAD_CODE_STRIPPING = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = "";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
+				MARKETING_VERSION = 1.0.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		C780B162A7609CE4283C5F4C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				COMBINE_HIDPI_IMAGES = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.amgaviationgroup.bluenudge.tests;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		792EC7D82C0708573627639C /* Build configuration list for PBXNativeTarget "BlueNudgeTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C780B162A7609CE4283C5F4C /* Debug */,
+				502B3E57DA1A45B57CA7A626 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		A3E39F4BC04190BB8DD24E14 /* Build configuration list for PBXProject "BlueNudge" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A199E831BB010A99DCF9FACE /* Debug */,
+				BCF229E9BFEDF9C60D2DBF6E /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		B1E492FD21E8EA30A543EA07 /* Build configuration list for PBXNativeTarget "BlueNudgeRelay" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				86739DEEAF4D25B07C7840AD /* Debug */,
+				24FEA76CC9D8FCC53B056B8C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		CB9EAD1DB3F793E43FD67B2B /* Build configuration list for PBXNativeTarget "BlueNudge" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				181BF848735F5DE0FF5AA85C /* Debug */,
+				5AB9AF093118CEBA07291FE5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		B32DD91D71AEDC0702CBA098 /* XCLocalSwiftPackageReference "Packages/ReminderCore" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/ReminderCore;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		BE7E35B44BB628F30BC66D87 /* ReminderCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ReminderCore;
+		};
+		DEC5DF4460BAD2D4DA9EDC5F /* ReminderCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ReminderCore;
+		};
+		E84E5EFF651CE914207B1398 /* ReminderCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = ReminderCore;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = E3F0F89444F2FCF7EF7C3A32 /* Project object */;
+}

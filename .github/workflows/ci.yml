@@ -1,0 +1,112 @@
+name: CI
+
+# Builds the iPhone app and the Mac relay, runs the ReminderCore tests and the
+# texting backend's tests (Edge Functions and database).
+# The repository is public, so GitHub-hosted macOS minutes are free here. If the
+# repository becomes private they bill at 10x the Linux rate; the Linux job runs
+# first so a broken core fails fast and cheaply.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  core-tests:
+    name: ReminderCore tests (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    container: swift:latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Run tests
+        run: swift test --package-path Packages/ReminderCore
+
+  backend-tests:
+    name: Texting backend tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 12
+    steps:
+      - uses: actions/checkout@v5
+      - uses: denoland/setup-deno@v2
+      - name: Edge Function tests
+        run: deno test --allow-env supabase/tests
+      - name: Type-check Edge Functions
+        run: deno check supabase/functions/*/index.ts
+      # The migration on plain Postgres with stand-ins for Supabase's auth
+      # schema and roles, then the SQL checks.
+      - name: Database tests
+        env:
+          PGHOST: localhost
+          PGUSER: postgres
+          PGPASSWORD: postgres
+        run: supabase/tests/db/run.sh
+
+  apple-builds:
+    name: Build iPhone app and Mac relay
+    needs: core-tests
+    runs-on: macos-26
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Xcode version
+        run: xcodebuild -version
+
+      - name: ReminderCore tests (macOS)
+        run: swift test --package-path Packages/ReminderCore
+
+      # -quiet prints only warnings and errors. Signing is off: CI only checks
+      # that everything compiles; you sign with your own team in Xcode.
+      - name: Build iPhone app
+        run: >
+          xcodebuild build -quiet
+          -project BlueNudge.xcodeproj
+          -scheme BlueNudge
+          -configuration Debug
+          -destination 'generic/platform=iOS'
+          -derivedDataPath build/DerivedData
+          CODE_SIGNING_ALLOWED=NO
+
+      - name: Build Mac relay
+        run: >
+          xcodebuild build -quiet
+          -project BlueNudge.xcodeproj
+          -scheme BlueNudgeRelay
+          -configuration Debug
+          -destination 'generic/platform=macOS'
+          -derivedDataPath build/DerivedData
+          CODE_SIGNING_ALLOWED=NO
+
+      # SwiftData queries, chat.db queries and the Messages AppleScript.
+      # Filtered rather than -quiet so the log shows how many tests ran.
+      - name: App tests (macOS)
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project BlueNudge.xcodeproj \
+            -scheme BlueNudgeTests \
+            -destination 'platform=macOS,arch=arm64' \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            | grep -E "error:|Test Case .* failed|Test Suite '(All tests|.*Tests)' (passed|failed)|Executed [0-9]+ test|\*\* TEST (SUCCEEDED|FAILED)"

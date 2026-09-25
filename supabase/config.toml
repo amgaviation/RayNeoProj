@@ -1,0 +1,24 @@
+# Supabase CLI settings for BlueNudge's texting backend (local development and
+# `supabase functions deploy`). Hosted settings such as the Send SMS hook are set
+# in the dashboard; see supabase/README.md.
+project_id = "bluenudge"
+
+# Every function checks its own caller: a cron secret, a provider signature, a
+# webhook signature, Apple's API or the user's session.
+[functions.send-due]
+verify_jwt = false
+
+[functions.sms-inbound]
+verify_jwt = false
+
+[functions.send-sms-hook]
+verify_jwt = false
+
+[functions.verify-subscription]
+verify_jwt = false
+
+[functions.appstore-notifications]
+verify_jwt = false
+
+[functions.delete-account]
+verify_jwt = false

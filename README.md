@@ -1,270 +1,174 @@
-# RayNeo Air 4 Pro Workspace Configurator
+# BlueNudge
 
-A web app for designing what you see through RayNeo Air 4 Pro glasses: lay out
-virtual screens, set how far away each one sits, build views you can flip
-between with a keypress, and tune the display settings the SDK actually exposes.
+Reminders you won't miss. You set a reminder on your iPhone and pick how it
+reaches you:
 
-Every figure it shows is derived from the published hardware specs — 1920×1080
-per eye, 47° diagonal FOV, 120 Hz, HDR10 — and the maths is unit-tested. See
-[`docs/OPTICS.md`](docs/OPTICS.md) for the reasoning.
+| Method | How it arrives | Needs | Cost to the user |
+| --- | --- | --- | --- |
+| **Text me** | A real SMS from BlueNudge's number. Reply **SNOOZE**, **STOP**, **START** or **HELP**. | An iPhone, a phone number, the BlueNudge Texts subscription | Subscription |
+| **Alarm** | Rings like a Clock alarm, through silent mode and Focus, until stopped. | iOS 26 or later | Free |
+| **Notification** | A regular notification with a Snooze action. | Any iPhone | Free |
+| **Text from my Mac** | An iMessage sent by BlueNudge Relay on a Mac you own. | A Mac that stays on, a second Apple Account | Free |
 
-## Read this first — this app does not control your glasses from a Mac
+| Part | What it does |
+| --- | --- |
+| **BlueNudge** (iPhone/iPad) | Create reminders, see what's next and what was sent, sign in for texts, subscribe. |
+| **Texting backend** (`supabase/`) | Queues and sends "Text me" reminders as SMS through Twilio or Telnyx, handles replies, checks subscriptions with Apple. See [supabase/README.md](supabase/README.md). |
+| **BlueNudge Relay** (Mac menu bar) | Optional: texts "Text from my Mac" reminders through Messages and reads replies. |
+| **ReminderCore** (Swift package) | Scheduling, message templates, phone numbers and reply parsing shared by the apps. Tested on Linux and macOS. |
 
-Being blunt about it, because the word "configurator" invites the wrong
-expectation.
+## Screenshots
 
-**The Air 4 Pro is a display, not a computer.** It attaches over USB-C
-DisplayPort Alt Mode; the host does all the rendering. The settings that live on
-the glasses — brightness step, IPD, FOV trim, recentre — are reached through the
-RayNeo Air Unity SDK's `NativeModule`, which is **Android/Unity code**.
+The images in [`docs/screenshots`](docs/screenshots) come from the app running
+with sample data (see [Screenshots](#screenshots-1) below).
 
-**There is no official path to those settings from macOS.** macOS sees the
-glasses as a plain external monitor: no driver, no control API, no head-tracker
-access. RayNeo's own desktop software (Mirror Studio) is Windows-only, and the
-RayNeo XR app is phone-only. WebXR does not help — the glasses present as a
-monitor, not an XR device, so there is no runtime to bind to.
+| Today | Reminders | Editor | Settings |
+| --- | --- | --- | --- |
+| ![Today](docs/screenshots/iphone-today.png) | ![Reminders](docs/screenshots/iphone-reminders.png) | ![Editor](docs/screenshots/iphone-editor.png) | ![Settings](docs/screenshots/iphone-settings.png) |
 
-On a Mac, what actually changes a setting:
+## Features
 
-| Setting | Where |
-|---|---|
-| Brightness | The physical buttons on the glasses — 10 steps |
-| 3D / XR mode | Brightness + volume up together, then confirm in the RayNeo phone app |
-| Refresh rate | System Settings → Displays → the glasses → Refresh Rate |
-| Layout, size, distance | Designed here, then applied by a Unity/Android app from the Export tab |
+- Once, hourly, daily, weekly (chosen weekdays), monthly, yearly, every N units, with an end date or a count.
+- Quiet hours for hourly reminders, e.g. "every 2 hours, 9 AM–9 PM".
+- Quick times for one-off reminders: in 10 minutes, in an hour, this evening, tomorrow morning, next Monday.
+- Each reminder picks its own method; new reminders use the default chosen at first launch.
+- Texts: sign in with a code texted to your number, subscribe in the app (monthly or yearly), pause and resume, see texts this month and what's queued, delete the account.
+- Reply to a text: **SNOOZE** (10 min), **SNOOZE 30**, **2H**, **LATER**, "remind me in an hour" sends it again; **STOP** pauses every text until **START**; **HELP** explains; **DONE** is noted.
+- Alarms: the next 25 are set on the iPhone and topped up whenever the app opens or refreshes in the background.
+- Siri and Shortcuts: "Text me a reminder with BlueNudge" adds a one-time reminder without opening the app.
+- Today screen: anything still to set up (sign in, subscribe, allow alarms), what's next, and what was texted.
+- Activity log of every text, from the server and the Mac (sent, delivered, failed, missed, paused), with search and CSV export.
+- Wall-clock times survive daylight-saving changes; each reminder keeps its own time zone.
+- `{time}`, `{date}`, `{weekday}` and `{title}` placeholders in the text.
+- Reminders sync between your devices through your private iCloud.
 
-So **on macOS this is a planner and a code generator**, and that is the honest
-framing: work out the layout, check it against the real optical limits, export
-Unity C# or a JSON profile. Everything except live device control is fully
-functional, and the app tells you which is which — each device control is tagged
-with whether a real SDK call backs it or whether it is host-side.
+## What it costs to run
 
-There is one **unofficial** possibility worth testing. Glasses in this class
-generally expose a USB HID interface for their MCU and sensors, and those have
-been reverse-engineered for several brands — including a RayNeo Air 3s Pro driver
-built on macOS IOKit HID. Whether the Air 4 Pro does the same is untested, so the
-app ships a read-only probe: **Connect → Probe the USB connection**. It
-enumerates the interfaces, listens for sensor traffic, and gives a verdict.
-It never writes anything. See [`docs/MAC_CONTROL.md`](docs/MAC_CONTROL.md) for
-what is established fact and what is not.
+| Item | Cost |
+| --- | --- |
+| Apple Developer Program | $99/year |
+| Supabase (database, auth, functions, cron) | Free plan to start; a Pro organization bills about $10/month per extra project, plus usage |
+| SMS, per text (US) | Twilio about $0.0083 + carrier fee (about $0.003–0.005); Telnyx about $0.004 + carrier fee |
+| Replies (SNOOZE, STOP…) | Billed as inbound SMS at similar rates |
+| US carrier registration | 10DLC: brand $4.50 + vetting $41.50 + campaign $15, then $1.50–10/month; or toll-free verification (needs a business EIN) |
+| Apple's commission | 15% (Small Business Program) or 30% of each subscription |
 
-**Live control is possible, but only from an Android host**, where the Air SDK
-actually runs. Two ways to get there:
+Each account is capped at 300 texts a month and 40 a day by default
+(`public.app_config`), which bounds the SMS cost per subscriber. Alarms,
+notifications and Mac texts cost nothing per reminder.
 
-- **Export** a Unity `MonoBehaviour` with your workspace compiled in, for a
-  project using the RayNeo SDK (`companion/`), or
-- **Connect** to a companion app over a WebSocket and stream changes live as you
-  edit.
+## Requirements
 
-With no companion attached, everything runs against a simulated device — the
-default, and labelled as simulated rather than implying hardware is present.
+- Xcode 26 or later on a Mac.
+- iPhone or iPad on iOS 17 or later; Alarm reminders need iOS 26.
+- For texts: the backend deployed (see [supabase/README.md](supabase/README.md)).
+- For Mac texts: a Mac on macOS 14 or later, a second Apple Account for its Messages app, and iCloud on the Mac signed in to the same Apple Account as the iPhone.
 
-## What it does
+## Setup
 
-**Screens.** Add panels, set distance in metres and diagonal in inches, place
-them by yaw/pitch/roll, curve them, set opacity and z-order. Source resolution is
-per-panel, because it should be.
+### 1. Open and sign
 
-**Distance that behaves.** "Lock apparent size" scales the diagonal as you move a
-panel, so pushing a screen further away keeps it looking identical instead of
-shrinking. That is the whole trick behind quoting a big inch count, and it is a
-toggle rather than a surprise.
+1. Open `BlueNudge.xcodeproj`.
+2. For each target (**BlueNudge**, and **BlueNudgeRelay** if you use it), open *Signing & Capabilities* and pick your Team.
+3. Both targets use the iCloud container `iCloud.com.amgaviationgroup.bluenudge`. If Xcode reports it missing, tick it in the iCloud section so Xcode creates it.
+4. To use your own bundle IDs, see [Changing identifiers](#changing-identifiers).
 
-**Views, and switching between them fast.** A view records which panels are up
-and which has focus. Press `1`–`4` to jump between them. Views share panel
-geometry, so resizing a screen once updates it everywhere. A view can recentre
-the workspace on your current heading as it activates.
+### 2. Texting and subscription
 
-**Multitasking layouts.** Arc, grid, stack, theater, cockpit and sidecar
-generators. They re-flow only the panels in the current view and skip locked
-ones, so you can pin one screen and rearrange the rest around it. Arc and grid
-place everything at one distance so your eyes never re-converge when you switch.
+1. Deploy the backend: [supabase/README.md](supabase/README.md).
+2. In `project.yml`, set the BlueNudge target's `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `PRIVACY_POLICY_URL` and `TERMS_URL`, then run `xcodegen generate`. Without `SUPABASE_URL`, "Text me" is hidden and the app offers alarms and notifications only. Texts go to US and Canadian numbers (`TEXTING_CALLING_CODES` in the app, `SMS_ALLOWED_COUNTRY_CODES` on the backend); widen both together if you serve other countries, whose SMS rates are several times higher.
+3. In App Store Connect, create the auto-renewable subscriptions listed in `SUBSCRIPTION_PRODUCT_IDS` (one group, "BlueNudge Texts").
+4. Running from Xcode uses `StoreKit/BlueNudge.storekit`, so you can try the paywall with test purchases before App Store Connect is set up.
 
-**Two previews.** A through-the-glasses view that is the *exact* rectilinear
-projection the headset performs — if a panel touches the border here it touches
-the border on the device — and an orbital 3D view for understanding where
-everything sits. Panels outside the field of view are drawn faintly in the
-margin, so you can see what you would have to turn to reach.
+### 3. Mac relay (optional)
 
-**Device console.** Brightness (4 steps), IPD (60–70 mm), FOV trim, the SDK's FOV
-overlay, electrochromic shade, refresh rate, stereo mode, HDR, and body-follow
-deadzone and lag.
+1. Create a second Apple Account at [account.apple.com](https://account.apple.com).
+2. On the Mac, open *Messages › Settings › iMessage* and sign in with that second account. Leave *System Settings › Apple Account / iCloud* on your own account.
+3. Run the **BlueNudgeRelay** scheme. It lives in the menu bar; the dashboard opens on first launch.
+4. Click **Grant access** and allow it to control Messages.
+5. Add *BlueNudge Relay* to *System Settings › Privacy & Security › Full Disk Access* and click **Recheck**. This turns on replies and delivery confirmation.
+6. Turn on **Open at login** and **Keep this Mac awake**.
+7. On the iPhone, save the second account's email as a contact, and enter your number in *Settings › Text from my Mac*.
 
-**Live analysis.** Apparent size in degrees, sharpness against the source
-resolution, effective pixels-per-degree, and the smallest legible text size. Plus
-advisories that name the physical reason they are complaining — so you can argue
-with them instead of just obeying.
+"Text from my Mac" appears in the iPhone app once a relay has checked in.
 
-**Bindings.** Keys, touchpad gestures, head gestures and phone buttons mapped to
-actions. Key bindings are live in the browser, so you can rehearse a switching
-workflow before the glasses are anywhere near your face. The other kinds are
-recorded for the companion, and labelled as such.
+### Shipping to the App Store
 
-**Export.** Profile JSON (re-importable), Unity C#, the bridge ops with their
-SDK calls, a Markdown report, and an `adb` snippet.
+- Before the first TestFlight build, deploy the CloudKit schema to Production in the [CloudKit Console](https://icloud.developer.apple.com).
+- The subscription needs a privacy policy and terms of use (set their URLs as above), a description of what the subscription includes, and App Review notes explaining the texting sign-in; give the reviewer a test number or a demo account.
+- App Store privacy labels: the texting backend stores the phone number and the text of "Text me" reminders; say so in the privacy policy.
+- The Mac relay cannot go on the Mac App Store (it is not sandboxed, scripts Messages and reads its database); distribute it signed with Developer ID and notarized, or run it from Xcode.
+- Don't use "iMessage" in the app's name; Apple's trademark rules allow it only in phrases like "works with iMessage".
 
-## Download and run on a Mac
-
-Two ways, depending on whether you want an app icon in your dock.
-
-### One file, no install
-
-Grab **[`download/RayNeo-Air4Pro-Configurator.html`](download/RayNeo-Air4Pro-Configurator.html)**
-(use the "Download raw file" button) and double-click it. That is the whole app —
-~850 kB of self-contained HTML, no server, no install, no network. It opens in
-Safari or Chrome and works fully offline.
-
-Verified with every network request blocked: it makes none. Your profile is saved
-in the browser's local storage for that file, so keep the file somewhere stable
-rather than in Downloads if you want your workspaces to persist.
-
-### A real macOS app (.dmg)
-
-`.dmg` files can only be built on macOS — creating a disk image needs Apple's own
-tooling — so a **GitHub Actions workflow** builds it on a macOS runner. Go to the
-repo's **Actions** tab → **Build macOS app** → **Run workflow**, then download the
-`rayneo-configurator-macos` artifact when it finishes (~2 minutes). Inside:
-
-| File | For |
-|---|---|
-| `RayNeo Air 4 Pro Configurator-0.1.0-arm64.dmg` | Apple Silicon (M1 and later) |
-| `RayNeo Air 4 Pro Configurator-0.1.0.dmg` | Intel Macs |
-| `…-arm64-mac.zip` / `…-mac.zip` | the same app, unwrapped |
-
-Pushing a `v*` tag also attaches all of them to a GitHub Release.
-
-The build is **ad-hoc signed but not notarised** — there is no Apple Developer
-certificate in CI — so Gatekeeper will refuse it the first time. Right-click the
-app and choose **Open**, then confirm. Once only. Or from Terminal:
-
-```bash
-xattr -dr com.apple.quarantine "/Applications/RayNeo Air 4 Pro Configurator.app"
-```
-
-> **If macOS says the app is "damaged and can't be opened"**, you have a build
-> from before commit `4ba2c95`. Those were signed with no identity at all, and
-> Apple Silicon will not load unsigned arm64 code — it reports it as damaged
-> rather than untrusted, and right-click → Open cannot help. Download a build
-> from a later run; CI now ad-hoc signs every bundle and fails if a signature is
-> missing.
-
-To build the app yourself on your own Mac:
-
-```bash
-npm install && npm run build:offline
-cd desktop && npm install && npm run dist:mac
-# → desktop/release/*.dmg
-```
-
-The Electron wrapper loads the same single HTML file, so the desktop and web
-versions cannot drift apart. It adds the things a browser tab cannot: a proper
-macOS menu bar, remembered window size, and no mixed-content restriction on the
-`ws://` companion bridge.
-
-## Developing
-
-```bash
-npm install
-npm run dev          # http://localhost:5173
-```
-
-```bash
-npm test             # optics and projection maths
-npm run typecheck
-npm run build
-```
-
-Nothing is uploaded anywhere. The profile lives in `localStorage`; use
-**Export → Profile JSON** for a copy you can keep or move.
-
-## Getting a workspace onto the glasses
-
-Either route is fine; the baked one is simpler.
-
-**Baked.** Export → Unity C# → drop `RayNeoWorkspaceApplier.cs` into a Unity
-project with the RayNeo Air SDK imported, wire up three fields, build. Geometry
-is pre-converted to Unity's left-handed +Z-forward space, so there is no angle
-maths at runtime.
-
-**Live.** Run `companion/BridgeServer.cs` on the host, point the Connect tab at
-its IP, and edits stream over as you make them. Note that a page served over
-HTTPS cannot open a `ws://` socket, so use plain HTTP locally.
-
-Full setup, including the SDK import steps and the manifest activity the SDK
-needs: [`companion/README.md`](companion/README.md).
-
-## Layout
+## Project layout
 
 ```
-src/lib/
-  optics.ts      FOV splitting, angular size, pixel counting, comfort audits
-  project.ts     3D placement and the rectilinear projection both previews use
-  layouts.ts     arc / grid / stack / theater / cockpit / sidecar generators
-  device.ts      hardware profiles
-  types.ts       the profile data model
-  presets.ts     built-in workspaces
-  store.ts       state, actions, persistence
-  bridge.ts      companion transport + the SDK call mapping
-  exporters.ts   JSON, Unity C#, bridge reference, Markdown report
-src/components/
-  GlassesView    through-the-glasses preview (SVG, exact projection)
-  SceneView      orbital 3D preview (three.js)
-  ...            inspector, device console, views, bindings, export, connect
-companion/       Unity C# for the host side
-desktop/         Electron wrapper + electron-builder config for the macOS app
-download/        the built single-file app (committed, so it can be grabbed directly)
-docs/            optics reasoning, bridge protocol, macOS control findings
+App/Shared/        SwiftData models, iCloud store, repository, texting API client (both apps)
+App/iOS/           iPhone app: views, notifications, alarms, texting account, subscription, Siri intent
+App/macOS/         Mac relay: engine, Messages sender, chat.db reader, menu bar + dashboard
+Packages/ReminderCore/  Platform-neutral logic + unit tests
+Tests/BlueNudgeTests/   Data-layer, texting client, reply and relay tests (macOS)
+supabase/          Texting backend: migration, Edge Functions, tests
+StoreKit/          Local StoreKit configuration for test purchases
+project.yml        XcodeGen spec (BlueNudge.xcodeproj is generated from it)
+scripts/           App icons and screenshot capture
 ```
 
-`npm run build:offline` regenerates `download/RayNeo-Air4Pro-Configurator.html`.
-It inlines the JS and CSS, folds in the lazy three.js chunk, and fails the build
-if any external reference survives — so a file that claims to be standalone
-always is.
+## Development
 
-`npm run emit:companion` regenerates `companion/RayNeoWorkspaceApplier.cs` from
-the built-in presets. It is deterministic, so the generated shape is reviewable
-in a diff.
+```sh
+# Core logic tests (macOS or Linux)
+swift test --package-path Packages/ReminderCore
 
-## Built-in workspaces
+# App tests on a Mac: SwiftData queries, texting client, reply handling,
+# Messages database queries and the relay's AppleScript
+xcodebuild test -project BlueNudge.xcodeproj -scheme BlueNudgeTests -destination 'platform=macOS'
 
-| Workspace | For |
-|---|---|
-| **Desk** | Three-up arc plus a scratch panel below eye line. Everyday multitasking. |
-| **Cinema** | One screen filling most of the FOV at 6 m — where the 201" figure applies. |
-| **Flight deck** | Chart ahead, head-locked instrument strip below, weather and checklist flanking. |
-| **Gaming** | Large central screen at 5 m with guide and party panels parked outside it. |
-| **Walk-safe** | Small, dim, head-locked panels kept out of the centre of vision. |
+# Backend tests (Deno and any Postgres 15+)
+deno test --allow-env supabase/tests
+supabase/tests/db/run.sh
 
-All five analyse clean — their source resolutions are matched to each panel's
-angular size, which is free sharpness. `docs/OPTICS.md` explains why.
+# After editing project.yml
+brew install xcodegen && xcodegen generate
+```
 
-## Known limits
+CI (`.github/workflows/ci.yml`) runs the core tests on Linux, the backend tests
+against Postgres, then on macOS builds both apps with signing disabled and runs
+the app tests.
 
-- **3DoF only.** The Air series reports orientation, never position.
-  "World-locked" means bearing-locked: walk, and the panel comes with you. No
-  parallax, no room-scale.
-- **~44 px/deg on axis**, against roughly 60 for 20/20 vision. Comfortable, but
-  never desk-monitor crisp, and no configuration changes that.
-- **The bridge has no authentication.** Local trusted networks only.
-- **Head gestures and touchpad triggers are recorded, not detected.** A browser
-  tab cannot see a head nod; the companion has to implement them.
-- Panel *contents* are mock-ups. This tool designs the arrangement — it is not a
-  window manager and does not stream real application output.
-- **No official live device control on macOS.** Not a limitation of this app —
-  RayNeo provide no macOS API for the Air series. An unofficial USB HID route may
-  exist; the app ships a read-only probe to find out. See
-  [`docs/MAC_CONTROL.md`](docs/MAC_CONTROL.md).
-- The macOS app is **ad-hoc signed, not notarised**, so first launch needs the
-  right-click → Open step above. Proper signing needs a paid Apple Developer
-  certificate.
-- The 3D preview needs WebGL. If it is unavailable the pane says so and
-  everything else keeps working — the other previews, the analysis and all
-  exports are pure geometry with no GPU involved.
+### Screenshots
 
-## Reference
+Debug builds have a demo mode with sample data that never touches real data:
+launch the iPhone app with `-BlueNudgeDemo YES -BlueNudgeScreen today`
+(or `reminders`, `editor`, `how`, `activity`, `settings`, `texts`, `onboarding`, `delivery`). The
+*Screenshots* workflow captures every screen in the iOS Simulator plus the Mac
+relay's windows and commits them to `docs/screenshots`; run it from the Actions
+tab or add the `screenshots` label to a pull request.
 
-- [RayNeo Air Unity SDK](https://rayneo-en.gitbook.io/rayneo-devdoc/air-series/unity-sdk/quick-start/overview)
-  · [SDK import](https://rayneo-en.gitbook.io/rayneo-devdoc/air-series/unity-sdk/quick-start/import-sdk)
-  · [`NativeModule` API](https://rayneo-en.gitbook.io/rayneo-devdoc/air-series/unity-sdk/api/nativemodule)
-- Hardware specs are the published Air 4 Pro figures: 0.6" micro-OLED, 1920×1080
-  per eye, 47° diagonal, 120 Hz, 1200 nits peak, 200,000:1, HDR10, 76 g.
+### Changing identifiers
+
+Edit `project.yml`: `bundleIdPrefix`, both `PRODUCT_BUNDLE_IDENTIFIER` values,
+the iCloud container in both `entitlements` blocks (keep it identical in both),
+the subscription product IDs, and the background task identifier
+(`BGTaskSchedulerPermittedIdentifiers`, also in `BackgroundRefresh.swift`), then
+run `xcodegen generate`. Update `APPSTORE_BUNDLE_ID` and `APPSTORE_PRODUCT_IDS`
+on the backend to match.
+
+## Data model rules (CloudKit)
+
+Models live in `App/Shared/Models.swift` and follow CloudKit's constraints:
+every property has a default, there are no unique constraints and no
+relationships (links are stored as UUIDs). Once the schema is deployed to
+Production, properties can be added but never renamed or removed.
+
+## Limits
+
+- Texts need a working connection to the backend when reminders change: the app
+  sends the next 45 days of each "Text me" reminder, and tops the queue up when it
+  opens and in the background.
+- A text more than 60 minutes late (e.g. during a provider outage) is logged as
+  missed rather than sent.
+- iOS limits how many notifications and alarms an app can schedule ahead, so
+  reminders more than a couple of weeks out are scheduled as the date gets
+  closer; open the app now and then if you rely on alarms or notifications.
+- Mac texts only go out while the Mac is on, awake and online.
