@@ -6,8 +6,8 @@ import ReminderCore
 /// The relay loop. Every 30 seconds it:
 /// 1. checks in (heartbeat) and makes sure it is the one active relay,
 /// 2. follows up on recent sends (delivered / failed → optional SMS retry),
-/// 3. handles STOP / START replies,
-/// 4. sends whatever automatic reminders are due, with throttling.
+/// 3. handles your replies (SNOOZE, STOP, START),
+/// 4. texts you whatever reminders are due, with throttling.
 ///
 /// Every message is claimed in the shared log *before* it is handed to Messages,
 /// so a crash or a second device can never cause a duplicate.
@@ -35,8 +35,8 @@ final class RelayEngine: ObservableObject {
         var detail: String {
             switch self {
             case .starting: return "Checking permissions and iCloud."
-            case .running: return "Sending automatic reminders as they come due."
-            case .paused: return "Nothing is sent while paused. Missed reminders are logged when you resume."
+            case .running: return "Texting your reminders as they come due."
+            case .paused: return "Nothing is sent while paused. Reminders that come due are logged as missed when you resume."
             case .standby(let reason), .attention(let reason): return reason
             }
         }
@@ -78,7 +78,8 @@ final class RelayEngine: ObservableObject {
     @Published private(set) var isChecking = false
     @Published private(set) var events: [Event] = []
     @Published private(set) var automaticRemindersSeen = 0
-    @Published private(set) var peopleSeen = 0
+    /// Where texts go, as set in the iPhone app.
+    @Published private(set) var textsGoTo: String?
     @Published private(set) var iCloudAccount = "Checking…"
 
     var sentLast24h: Int { demoSentCount ?? prefs.recentSends.count }
@@ -149,7 +150,7 @@ final class RelayEngine: ObservableObject {
         let settings = repository.settings()
         lastCheck = now
         automaticRemindersSeen = repository.reminders().filter { $0.method == .relay && $0.isActive }.count
-        peopleSeen = repository.recipients().count
+        textsGoTo = repository.me()?.displayHandle
 
         defer {
             updateNextDue(repository: repository)
@@ -180,7 +181,7 @@ final class RelayEngine: ObservableObject {
         hasFullDiskAccess = chatDB != nil
         if let chatDB {
             await followUpRecentSends(repository: repository, settings: settings, chatDB: chatDB, now: now)
-            if settings.honorOptOutReplies {
+            if settings.honorOptOutReplies || settings.honorSnoozeReplies {
                 await processReplies(repository: repository, settings: settings, chatDB: chatDB)
             }
         }
@@ -224,7 +225,7 @@ final class RelayEngine: ObservableObject {
         }
         for message in plan.unreachable {
             repository.record(message, status: .failed, channel: .relay, deviceName: device,
-                              error: "This person has no valid phone number or email.")
+                              error: "The number to text isn't valid. Fix it in the iPhone app under Settings › Texts go to.")
         }
         repository.save()
         if !plan.missed.isEmpty {
@@ -280,7 +281,7 @@ final class RelayEngine: ObservableObject {
                     record.deliveredAt = row.deliveredAt ?? Date()
                 }
             }
-            log("Sent “\(message.reminderTitle)” to \(name) via \(record.serviceUsed).", problem: false)
+            log("Texted “\(message.reminderTitle)” to \(name) via \(record.serviceUsed).", problem: false)
         case .failed(let reason):
             record.status = .failed
             record.errorMessage = reason
@@ -361,6 +362,7 @@ final class RelayEngine: ObservableObject {
 
     // MARK: Replies
 
+    /// Your replies to the relay's texts. See `ReplyHandler` for what each does.
     private func processReplies(repository: Repository, settings: SharedSettings, chatDB: ChatDatabase) async {
         guard let lastRowID = prefs.lastInboundRowID else {
             // First run: start from now instead of scanning years of history.
@@ -369,58 +371,23 @@ final class RelayEngine: ObservableObject {
         }
         let incoming = chatDB.incoming(afterRowID: lastRowID)
         guard !incoming.isEmpty else { return }
-        let recipients = repository.recipients()
-        let countryCode = settings.defaultCountryCode
+        let handler = ReplyHandler(repository: repository, settings: settings, deviceName: DeviceInfo.name)
 
-        for reply in incoming {
-            prefs.lastInboundRowID = reply.rowID
-            guard let intent = OptOutDetector.classify(reply.text) else { continue }
-            let normalized = HandleNormalizer.normalize(reply.handle, defaultCountryCode: countryCode) ?? reply.handle.lowercased()
-            let matches = recipients.filter { $0.handle == normalized }
-            guard let first = matches.first else { continue }
-
-            switch intent {
-            case .optOut:
-                let newlyOptedOut = matches.filter { !$0.optedOut }
-                guard !newlyOptedOut.isEmpty else { continue }
-                for recipient in newlyOptedOut {
-                    recipient.setOptedOut(true, source: "reply")
-                }
-                let entry = PlannedMessage(
-                    key: "optout|\(prefs.deviceID)|\(reply.rowID)",
-                    reminderID: first.id,
-                    recipientID: first.id,
-                    occurrence: reply.date,
-                    reminderTitle: "Opted out by reply",
-                    recipientName: first.name,
-                    handle: normalized,
-                    service: .auto,
-                    text: reply.text
-                )
-                let record = repository.record(entry, status: .optedOut, channel: .relay, deviceName: DeviceInfo.name,
-                                               error: "They replied “\(reply.text)” and won't get further reminders.")
-                record.reminderID = nil
-                repository.save()
-                log("\(first.displayName) opted out by replying “\(reply.text)”.", problem: false)
-
-                if settings.sendOptOutConfirmation {
-                    let confirmation = settings.optOutConfirmationText.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if !confirmation.isEmpty {
-                        let service: MessagesSender.Service = reply.service.uppercased() == "SMS" ? .sms : .iMessage
-                        _ = await MessagesSender.send(confirmation, to: reply.handle, service: service)
-                        prefs.recentSends = prefs.recentSends + [Date()]
-                    }
-                }
-            case .optIn:
-                // START only reverses opt-outs that came from a reply, never ones
-                // you set by hand in the app.
-                let resubscribed = matches.filter { $0.optedOut && $0.optOutSource == "reply" }
-                guard !resubscribed.isEmpty else { continue }
-                for recipient in resubscribed {
-                    recipient.setOptedOut(false, source: "reply")
-                }
-                repository.save()
-                log("\(first.displayName) opted back in by replying “\(reply.text)”.", problem: false)
+        for message in incoming {
+            prefs.lastInboundRowID = message.rowID
+            let outcome = handler.handle(ReplyHandler.Reply(
+                rowID: message.rowID,
+                handle: message.handle,
+                text: message.text,
+                date: message.date
+            ))
+            if let line = outcome.logLine {
+                log(line, problem: false)
+            }
+            if let confirmation = outcome.confirmation {
+                let service: MessagesSender.Service = message.service.uppercased() == "SMS" ? .sms : .iMessage
+                _ = await MessagesSender.send(confirmation, to: message.handle, service: service)
+                prefs.recentSends = prefs.recentSends + [Date()]
             }
         }
     }
@@ -477,6 +444,7 @@ final class RelayEngine: ObservableObject {
         if let lastPrune, now.timeIntervalSince(lastPrune) < 6 * 3_600 { return }
         lastPrune = now
         repository.pruneDeliveries(olderThanDays: settings.logRetentionDays, now: now)
+        repository.pruneFinishedSnoozes(now: now)
         let staleCutoff = now.addingTimeInterval(-30 * 86_400)
         for heartbeat in repository.heartbeats() where heartbeat.lastSeen < staleCutoff {
             repository.context.delete(heartbeat)
@@ -512,8 +480,8 @@ final class RelayEngine: ObservableObject {
         let outcome = await MessagesSender.send(text, to: handle, service: service)
         switch outcome {
         case .sent:
-            log("Test message sent to \(handle).", problem: false)
-            return "Sent to \(HandleNormalizer.displayFormat(handle)). Check Messages to confirm it was delivered."
+            log("Test text sent to \(handle).", problem: false)
+            return "Sent to \(HandleNormalizer.displayFormat(handle)). Check that your iPhone showed it as a new text, not one you sent."
         case .failed(let reason):
             log("Test message to \(handle) failed: \(reason)", problem: true)
             return "Failed: \(reason)"
@@ -542,7 +510,7 @@ final class RelayEngine: ObservableObject {
         hasFullDiskAccess = true
         iCloudAccount = "Signed in"
         automaticRemindersSeen = repository.reminders().filter { $0.method == .relay && $0.isActive }.count
-        peopleSeen = repository.recipients().count
+        textsGoTo = repository.me()?.displayHandle
         updateNextDue(repository: repository)
         let sends = repository.deliveries(since: Date().addingTimeInterval(-86_400))
             .filter { $0.channel == .relay && $0.status.countsAsSent }
@@ -550,7 +518,7 @@ final class RelayEngine: ObservableObject {
         events = sends.prefix(6).map { record in
             Event(
                 date: record.sentAt ?? record.createdAt,
-                text: "Sent “\(record.reminderTitle)” to \(record.displayRecipient) via \(record.serviceUsed).",
+                text: "Texted “\(record.reminderTitle)” to \(record.displayRecipient) via \(record.serviceUsed).",
                 isProblem: false
             )
         }

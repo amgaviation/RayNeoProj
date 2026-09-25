@@ -1,34 +1,34 @@
 import Foundation
 
-/// How a reminder gets delivered.
+/// How a reminder reaches you.
 public enum DeliveryMethod: String, Codable, CaseIterable, Identifiable, Sendable {
-    /// A Mac running BlueNudge Relay sends it through Messages, unattended.
+    /// Texted to your phone as an iMessage by BlueNudge Relay running on a Mac.
     case relay
-    /// The iPhone alerts you and you tap Send (or a Shortcuts automation sends it).
-    case tapToSend
+    /// A notification on the iPhone itself. Works without a Mac.
+    case notification
 
     public var id: String { rawValue }
 
     public var title: String {
         switch self {
-        case .relay: return "Automatic (Mac relay)"
-        case .tapToSend: return "Tap to send (iPhone)"
+        case .relay: return "Text me"
+        case .notification: return "Notification only"
         }
     }
 
     public var shortTitle: String {
         switch self {
-        case .relay: return "Automatic"
-        case .tapToSend: return "Tap to send"
+        case .relay: return "Text"
+        case .notification: return "Notification"
         }
     }
 
     public var explanation: String {
         switch self {
         case .relay:
-            return "Sent unattended by the Mac relay through Messages. Free, but needs a Mac that stays on."
-        case .tapToSend:
-            return "Your iPhone alerts you at the scheduled time and opens a ready-to-send message. Free, no Mac needed."
+            return "Arrives in Messages as a text, sent by BlueNudge Relay on your Mac. Free, but the Mac has to stay on."
+        case .notification:
+            return "A regular notification on this iPhone. Free, no Mac needed, but it isn't a text."
         }
     }
 }
@@ -47,7 +47,7 @@ public enum DeliveryStatus: String, Codable, CaseIterable, Sendable {
     case missed
     /// Deliberately skipped by the user.
     case skipped
-    /// Not sent because the recipient opted out.
+    /// Not sent because texts were paused (a STOP reply or the Pause switch).
     case optedOut
 
     public var title: String {
@@ -58,7 +58,7 @@ public enum DeliveryStatus: String, Codable, CaseIterable, Sendable {
         case .failed: return "Failed"
         case .missed: return "Missed"
         case .skipped: return "Skipped"
-        case .optedOut: return "Opted out"
+        case .optedOut: return "Paused"
         }
     }
 

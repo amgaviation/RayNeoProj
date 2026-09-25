@@ -3,7 +3,7 @@ import SwiftData
 import UniformTypeIdentifiers
 import ReminderCore
 
-/// The delivery log from every device: sent, delivered, failed, missed…
+/// Every reminder texted to you: sent, delivered, failed, missed…
 struct ActivityView: View {
     enum Filter: String, CaseIterable, Identifiable {
         case all, sent, problems
@@ -37,7 +37,7 @@ struct ActivityView: View {
                     ContentUnavailableView(
                         "Nothing here yet",
                         systemImage: "tray",
-                        description: Text("Every reminder sent, delivered, skipped or missed is listed here, from this iPhone and from the Mac relay.")
+                        description: Text("Every reminder texted to you, and any that were missed or failed, shows up here.")
                     )
                 } else {
                     ForEach(groupedByDay(shown), id: \.day) { group in
@@ -49,13 +49,13 @@ struct ActivityView: View {
                     }
                 }
             }
-            .searchable(text: $searchText, prompt: "Search by name or message")
+            .searchable(text: $searchText, prompt: "Search reminders")
             .navigationTitle("Activity")
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     ShareLink(
                         item: DeliveryLogExport(records: shown.map(DeliveryLogExport.Row.init)),
-                        preview: SharePreview("BlueNudge delivery log")
+                        preview: SharePreview("BlueNudge history")
                     ) {
                         Label("Export CSV", systemImage: "square.and.arrow.up")
                     }
@@ -73,9 +73,7 @@ struct ActivityView: View {
         }
         let query = searchText.trimmingCharacters(in: .whitespaces)
         guard !query.isEmpty else { return true }
-        return record.recipientName.localizedCaseInsensitiveContains(query)
-            || record.recipientHandle.localizedCaseInsensitiveContains(query)
-            || record.reminderTitle.localizedCaseInsensitiveContains(query)
+        return record.reminderTitle.localizedCaseInsensitiveContains(query)
             || record.messageText.localizedCaseInsensitiveContains(query)
     }
 
@@ -99,18 +97,12 @@ struct ActivityView: View {
 
 struct DeliveryRow: View {
     let record: DeliveryRecord
-    var showRecipient = true
 
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
             HStack(alignment: .firstTextBaseline) {
-                if showRecipient {
-                    Text(record.displayRecipient)
-                        .font(.subheadline.weight(.semibold))
-                } else {
-                    Text(record.reminderTitle.isEmpty ? "Reminder" : record.reminderTitle)
-                        .font(.subheadline.weight(.semibold))
-                }
+                Text(record.reminderTitle.isEmpty ? "Reminder" : record.reminderTitle)
+                    .font(.subheadline.weight(.semibold))
                 Spacer()
                 StatusBadge(status: record.status)
             }
@@ -132,10 +124,12 @@ struct DeliveryRow: View {
 
     private var detailLine: String {
         var parts: [String] = []
-        if showRecipient, !record.reminderTitle.isEmpty { parts.append(record.reminderTitle) }
         parts.append("due \(record.occurrenceDate.formatted(date: .abbreviated, time: .shortened))")
-        if let sent = record.sentAt { parts.append("sent \(sent.formatted(date: .omitted, time: .shortened))") }
-        if let delivered = record.deliveredAt { parts.append("delivered \(delivered.formatted(date: .omitted, time: .shortened))") }
+        if let delivered = record.deliveredAt {
+            parts.append("delivered \(delivered.formatted(date: .omitted, time: .shortened))")
+        } else if let sent = record.sentAt {
+            parts.append("sent \(sent.formatted(date: .omitted, time: .shortened))")
+        }
         var via = record.channel.title
         if !record.serviceUsed.isEmpty { via += " · \(record.serviceUsed)" }
         if !record.deviceName.isEmpty, record.channel == .relay { via += " (\(record.deviceName))" }

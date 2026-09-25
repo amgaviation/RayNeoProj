@@ -25,8 +25,8 @@ struct MethodBadge: View {
             .font(.caption2.weight(.semibold))
             .padding(.horizontal, 7)
             .padding(.vertical, 2)
-            .foregroundStyle(method == .relay ? Color.accentColor : Color.orange)
-            .background((method == .relay ? Color.accentColor : Color.orange).opacity(0.12), in: Capsule())
+            .foregroundStyle(method.tint)
+            .background(method.tint.opacity(0.12), in: Capsule())
     }
 }
 
@@ -39,7 +39,7 @@ extension DeliveryStatus {
         case .failed: return "exclamationmark.triangle.fill"
         case .missed: return "clock.badge.exclamationmark"
         case .skipped: return "forward.fill"
-        case .optedOut: return "hand.raised.fill"
+        case .optedOut: return "pause.circle.fill"
         }
     }
 
@@ -59,8 +59,15 @@ extension DeliveryStatus {
 extension DeliveryMethod {
     var symbolName: String {
         switch self {
-        case .relay: return "desktopcomputer"
-        case .tapToSend: return "hand.tap"
+        case .relay: return "message.fill"
+        case .notification: return "bell.fill"
+        }
+    }
+
+    var tint: Color {
+        switch self {
+        case .relay: return .accentColor
+        case .notification: return .orange
         }
     }
 }
@@ -109,25 +116,12 @@ struct RelayStatusView: View {
 
     private var detail: String {
         guard let heartbeat else {
-            return "Automatic reminders need BlueNudge Relay running on a Mac. Tap-to-send works without it."
+            return "Text reminders are sent by BlueNudge Relay on a Mac. Notification-only reminders work without it."
         }
         let seen = "Last check-in \(heartbeat.lastSeen.formatted(.relative(presentation: .named)))"
         if !heartbeat.statusText.isEmpty {
             return "\(heartbeat.statusText) · \(seen)"
         }
         return "\(heartbeat.sentLast24h) sent in the last 24 h · \(seen)"
-    }
-}
-
-/// Recipient names for a reminder, shortened for list rows.
-enum RecipientSummary {
-    static func text(for ids: [UUID], in directory: [UUID: Recipient]) -> String {
-        let names = ids.compactMap { directory[$0]?.displayName }
-        switch names.count {
-        case 0: return "No recipients"
-        case 1: return names[0]
-        case 2: return "\(names[0]) and \(names[1])"
-        default: return "\(names[0]), \(names[1]) and \(names.count - 2) more"
-        }
     }
 }

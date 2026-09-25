@@ -128,7 +128,7 @@ final class PlannerTests: XCTestCase {
     }
 
     func testMethodAndActiveFilters() {
-        let tap = reminder(start: "2026-10-01 09:00", recipients: [alice], method: .tapToSend)
+        let tap = reminder(start: "2026-10-01 09:00", recipients: [alice], method: .notification)
         let paused = reminder(start: "2026-10-01 09:00", recipients: [alice], active: false)
         let plan = DuePlanner.plan(
             reminders: [tap, paused],
@@ -145,7 +145,7 @@ final class PlannerTests: XCTestCase {
         let tapPlan = DuePlanner.plan(
             reminders: [tap, paused],
             recipients: directory,
-            method: .tapToSend,
+            method: .notification,
             alreadyHandled: [],
             windowStart: date("2026-10-05 08:00"),
             now: date("2026-10-05 09:05"),
@@ -173,7 +173,7 @@ final class PlannerTests: XCTestCase {
 
     func testUpcomingAcrossReminders() {
         let a = reminder(start: "2026-10-01 09:00", recipients: [alice])
-        let b = reminder(start: "2026-10-01 08:00", recipients: [bob], method: .tapToSend)
+        let b = reminder(start: "2026-10-01 08:00", recipients: [bob], method: .notification)
         let items = DuePlanner.upcoming(
             reminders: [a, b],
             method: nil,
@@ -185,7 +185,7 @@ final class PlannerTests: XCTestCase {
 
         let tapOnly = DuePlanner.upcoming(
             reminders: [a, b],
-            method: .tapToSend,
+            method: .notification,
             after: date("2026-10-05 08:30"),
             horizon: 3 * 86_400,
             limit: 10

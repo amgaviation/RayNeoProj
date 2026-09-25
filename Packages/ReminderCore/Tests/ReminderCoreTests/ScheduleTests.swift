@@ -254,3 +254,54 @@ final class ScheduleTests: XCTestCase {
         XCTAssertFalse(backwards.validationIssues(now: now).isEmpty)
     }
 }
+
+final class ActiveHoursTests: XCTestCase {
+    private func date(_ string: String) -> Date {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(identifier: "America/Denver")
+        formatter.dateFormat = "yyyy-MM-dd HH:mm"
+        return formatter.date(from: string)!
+    }
+
+    private func local(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(identifier: "America/Denver")
+        formatter.dateFormat = "MM-dd HH:mm"
+        return formatter.string(from: date)
+    }
+
+    func testHourlyStaysInsideTheWindow() {
+        let schedule = Schedule(
+            frequency: .hourly,
+            start: date("2026-10-01 07:00"),
+            interval: 2,
+            timeZoneIdentifier: "America/Denver",
+            activeMinutes: (9 * 60)...(21 * 60)
+        )
+        let first = schedule.allOccurrences(limit: 8).map(local)
+        XCTAssertEqual(first, [
+            "10-01 09:00", "10-01 11:00", "10-01 13:00", "10-01 15:00",
+            "10-01 17:00", "10-01 19:00", "10-01 21:00", "10-02 09:00",
+        ])
+        XCTAssertEqual(schedule.nextOccurrence(after: date("2026-10-05 21:30")).map(local), "10-06 09:00")
+    }
+
+    func testWindowOnlyAppliesToHourly() {
+        let daily = Schedule(frequency: .daily, start: date("2026-10-01 06:00"), timeZoneIdentifier: "America/Denver", activeMinutes: 540...1_260)
+        XCTAssertEqual(daily.allOccurrences(limit: 1).map(local), ["10-01 06:00"])
+    }
+
+    func testWindowRoundTripsThroughJSON() {
+        let schedule = Schedule(frequency: .hourly, start: date("2026-10-01 07:00"), timeZoneIdentifier: "America/Denver", activeMinutes: 540...1_260)
+        XCTAssertEqual(ScheduleCoding.decode(ScheduleCoding.encode(schedule))?.activeMinutes, 540...1_260)
+        let plain = Schedule(frequency: .hourly, start: date("2026-10-01 07:00"), timeZoneIdentifier: "America/Denver")
+        XCTAssertNil(ScheduleCoding.decode(ScheduleCoding.encode(plain))?.activeMinutes)
+    }
+
+    func testSummaryMentionsTheWindow() {
+        let schedule = Schedule(frequency: .hourly, start: date("2026-10-01 07:00"), interval: 2, timeZoneIdentifier: "America/Denver", activeMinutes: 540...1_260)
+        XCTAssertEqual(schedule.summary(locale: Locale(identifier: "en_US")), "Every 2 hours, 9:00 AM–9:00 PM")
+    }
+}

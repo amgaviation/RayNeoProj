@@ -60,6 +60,8 @@ jobs:
 
       - name: Shrink for the repository
         run: |
+          # Start clean so screens that no longer exist are removed.
+          rm -rf docs/screenshots
           mkdir -p docs/screenshots
           for file in build/screenshots/*.png; do
             sips -Z 1400 "$file" --out "docs/screenshots/$(basename "$file")" >/dev/null
@@ -67,9 +69,10 @@ jobs:
           ls -l docs/screenshots
 
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: screenshots
-          path: build/screenshots/*.png
+          path: build/screenshots
 
       - name: Commit screenshots
         env:
@@ -78,7 +81,7 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/screenshots
+          git add -A docs/screenshots
           if git diff --cached --quiet; then
             echo "Screenshots unchanged."
           else

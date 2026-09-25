@@ -1,5 +1,6 @@
 import SwiftUI
 import SwiftData
+import ReminderCore
 
 struct RootView: View {
     @ObservedObject private var appState = AppState.shared
@@ -15,18 +16,12 @@ struct RootView: View {
             RemindersListView()
                 .tabItem { Label("Reminders", systemImage: "bell") }
                 .tag(AppState.Tab.reminders)
-            PeopleListView()
-                .tabItem { Label("People", systemImage: "person.2") }
-                .tag(AppState.Tab.people)
             ActivityView()
                 .tabItem { Label("Activity", systemImage: "list.bullet.rectangle") }
                 .tag(AppState.Tab.activity)
             SettingsView()
                 .tabItem { Label("Settings", systemImage: "gearshape") }
                 .tag(AppState.Tab.settings)
-        }
-        .sheet(isPresented: $appState.isShowingSendQueue) {
-            SendQueueView()
         }
         .fullScreenCover(isPresented: $appState.isShowingOnboarding) {
             OnboardingView()
@@ -41,27 +36,26 @@ struct RootView: View {
         }
         .task {
             await appState.appDidBecomeActive()
-            openDemoScreenIfNeeded()
+            await openDemoScreenIfNeeded()
         }
     }
 
     /// Demo mode only: open the screen named by `-BlueNudgeScreen`.
-    private func openDemoScreenIfNeeded() {
+    @MainActor
+    private func openDemoScreenIfNeeded() async {
         guard DemoMode.isEnabled, !didApplyDemoScreen else { return }
         didApplyDemoScreen = true
         switch DemoMode.screen {
         case "reminders":
             appState.selectedTab = .reminders
-        case "people":
-            appState.selectedTab = .people
         case "activity":
             appState.selectedTab = .activity
         case "settings":
             appState.selectedTab = .settings
-        case "queue":
-            appState.presentSendQueue()
         case "editor":
             appState.selectedTab = .reminders
+            // Let the tab settle before presenting over it.
+            try? await Task.sleep(nanoseconds: 600_000_000)
             demoEditorReminder = Repository(context: DataStore.shared.mainContext)
                 .reminders()
                 .first { $0.title == DemoData.editorReminderTitle }
@@ -73,38 +67,77 @@ struct RootView: View {
     }
 }
 
-/// First-run walkthrough: how it works, which delivery mode fits, permissions.
+/// First run: what the app does, whether there's a Mac to send texts, and
+/// where the texts should go.
 struct OnboardingView: View {
     @ObservedObject private var appState = AppState.shared
     @Environment(\.modelContext) private var modelContext
 
-    @State private var page = 0
+    private enum Page: Int {
+        case welcome, delivery, number
+    }
+
+    @State private var page: Page = .welcome
     @State private var hasMac: Bool?
-    @State private var senderName = ""
+    @State private var handle = ""
+
+    private var repository: Repository { Repository(context: modelContext) }
+
+    private var normalizedHandle: String? {
+        let trimmed = handle.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return nil }
+        let code = repository.existingSettings()?.defaultCountryCode
+            ?? CallingCodes.callingCode(forRegion: Locale.current.region?.identifier)
+        return HandleNormalizer.normalize(trimmed, defaultCountryCode: code)
+    }
+
+    private var isLastPage: Bool {
+        page == .number || (page == .delivery && hasMac == false)
+    }
+
+    private var canContinue: Bool {
+        switch page {
+        case .welcome: return true
+        case .delivery: return hasMac != nil
+        case .number: return normalizedHandle != nil
+        }
+    }
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 24) {
-                TabView(selection: $page) {
-                    welcome.tag(0)
-                    delivery.tag(1)
-                    finish.tag(2)
+            VStack(spacing: 16) {
+                ScrollView {
+                    Group {
+                        switch page {
+                        case .welcome: welcome
+                        case .delivery: delivery
+                        case .number: number
+                        }
+                    }
+                    .padding(24)
+                    .frame(maxWidth: 560, alignment: .leading)
+                    .frame(maxWidth: .infinity)
                 }
-                .tabViewStyle(.page(indexDisplayMode: .always))
-                .indexViewStyle(.page(backgroundDisplayMode: .always))
+
+                PageDots(count: hasMac == false ? 2 : 3, current: page.rawValue)
 
                 Button(action: advance) {
-                    Text(page == 2 ? "Get started" : "Continue")
+                    Text(isLastPage ? "Get started" : "Continue")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
-                .disabled(page == 1 && hasMac == nil)
-                .padding(.horizontal)
+                .disabled(!canContinue)
+                .padding(.horizontal, 24)
             }
             .padding(.bottom)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
+                    if page != .welcome {
+                        Button("Back") { withAnimation { goBack() } }
+                    }
+                }
+                ToolbarItem(placement: .primaryAction) {
                     Button("Skip") { complete() }
                 }
             }
@@ -113,94 +146,126 @@ struct OnboardingView: View {
     }
 
     private var welcome: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                Image(systemName: "bubble.left.and.text.bubble.right.fill")
-                    .font(.system(size: 56))
-                    .foregroundStyle(Color.accentColor)
-                Text("Reminders by iMessage, with no per-text fees")
-                    .font(.largeTitle.bold())
-                Text("Schedule a message once and BlueNudge sends it to each person privately through the Messages app, from your own number or Apple Account.")
-                    .font(.body)
-                    .foregroundStyle(.secondary)
-                FeatureLine(symbol: "calendar.badge.clock", text: "One-time or repeating: hourly, daily, weekly, monthly, yearly.")
-                FeatureLine(symbol: "person.2.fill", text: "Personalised for each person with {first_name}, {date}, {time}.")
-                FeatureLine(symbol: "hand.raised.fill", text: "STOP replies are honored automatically by the Mac relay.")
-                FeatureLine(symbol: "icloud.fill", text: "Everything syncs through your own iCloud. No servers, no accounts.")
-            }
-            .padding(24)
+        VStack(alignment: .leading, spacing: 18) {
+            Image(systemName: "bubble.left.and.text.bubble.right.fill")
+                .font(.system(size: 56))
+                .foregroundStyle(Color.accentColor)
+            Text("Reminders that arrive as texts")
+                .font(.largeTitle.bold())
+            Text("BlueNudge texts your reminders to you in Messages, where they're hard to miss and easy to find later.")
+                .foregroundStyle(.secondary)
+            FeatureLine(symbol: "calendar.badge.clock", text: "Once, hourly, daily, weekly, monthly or yearly, with quiet hours for hourly ones.")
+            FeatureLine(symbol: "arrowshape.turn.up.left.fill", text: "Reply SNOOZE to get it again in 10 minutes, or SNOOZE 1H. Reply STOP to pause everything.")
+            FeatureLine(symbol: "icloud.fill", text: "Private: reminders sync through your own iCloud. No accounts, no servers.")
+            FeatureLine(symbol: "dollarsign.circle.fill", text: "No per-text fees. Texts go out through Messages on your Mac.")
         }
     }
 
     private var delivery: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                Text("Do you have a Mac that can stay on?")
-                    .font(.title.bold())
-                Text("Apple doesn't let iPhone apps send messages by themselves. A Mac running BlueNudge Relay can, fully unattended. Without one, your iPhone reminds you and the message is one tap away.")
-                    .foregroundStyle(.secondary)
-                ChoiceCard(
-                    title: "Yes, I have a Mac",
-                    detail: "New reminders send automatically through the Mac relay.",
-                    symbol: "desktopcomputer",
-                    isSelected: hasMac == true
-                ) { hasMac = true }
-                ChoiceCard(
-                    title: "No, iPhone only",
-                    detail: "New reminders alert you with the message ready to send.",
-                    symbol: "iphone",
-                    isSelected: hasMac == false
-                ) { hasMac = false }
-                Text("You can change this per reminder at any time.")
-                    .font(.footnote)
-                    .foregroundStyle(.secondary)
-            }
-            .padding(24)
+        VStack(alignment: .leading, spacing: 18) {
+            Text("Do you have a Mac that can stay on?")
+                .font(.title.bold())
+            Text("iPhone apps can't send texts on their own. A Mac running BlueNudge Relay can, so your reminders arrive as real texts. Without a Mac, you get a notification instead.")
+                .foregroundStyle(.secondary)
+            ChoiceCard(
+                title: "Yes, text me",
+                detail: "Reminders arrive in Messages, sent by the Mac.",
+                symbol: "message.fill",
+                isSelected: hasMac == true
+            ) { hasMac = true }
+            ChoiceCard(
+                title: "No, notify me",
+                detail: "Reminders arrive as notifications on this iPhone.",
+                symbol: "bell.fill",
+                isSelected: hasMac == false
+            ) { hasMac = false }
+            Text("You can change this for each reminder at any time.")
+                .font(.footnote)
+                .foregroundStyle(.secondary)
         }
     }
 
-    private var finish: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                Text("Almost done")
-                    .font(.title.bold())
-                Text("How should messages sign off? This fills {sender}.")
-                    .foregroundStyle(.secondary)
-                TextField("Your name or business", text: $senderName)
-                    .textFieldStyle(.roundedBorder)
-                    .textContentType(.name)
-                Text("Next, allow notifications so tap-to-send reminders can alert you on time.")
-                    .foregroundStyle(.secondary)
+    private var number: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            Text("Where should reminders be texted?")
+                .font(.title.bold())
+            Text("Your iPhone's number, or the email you use for iMessage.")
+                .foregroundStyle(.secondary)
+            TextField("Phone number or email", text: $handle)
+                .textFieldStyle(.roundedBorder)
+                .textContentType(.telephoneNumber)
+                .keyboardType(.emailAddress)
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled()
+            if let normalizedHandle {
+                Label("Texts will go to \(HandleNormalizer.displayFormat(normalizedHandle))", systemImage: "checkmark.circle.fill")
+                    .font(.subheadline)
+                    .foregroundStyle(.green)
             }
-            .padding(24)
+            Label {
+                Text("On the Mac, sign Messages in to a second Apple Account, not yours. Otherwise the texts look like you sent them and your iPhone won't alert you. Settings › Mac relay has the steps.")
+            } icon: {
+                Image(systemName: "info.circle")
+                    .foregroundStyle(Color.accentColor)
+            }
+            .font(.footnote)
+            .foregroundStyle(.secondary)
         }
     }
 
     private func advance() {
-        if page < 2 {
-            withAnimation { page += 1 }
-        } else {
+        if isLastPage {
             complete()
+            return
+        }
+        withAnimation {
+            switch page {
+            case .welcome: page = .delivery
+            case .delivery: page = .number
+            case .number: break
+            }
+        }
+    }
+
+    private func goBack() {
+        switch page {
+        case .welcome: break
+        case .delivery: page = .welcome
+        case .number: page = .delivery
         }
     }
 
     private func complete() {
-        let repository = Repository(context: modelContext)
         let settings = repository.settings()
         if let hasMac {
-            settings.defaultMethod = hasMac ? .relay : .tapToSend
+            settings.defaultMethod = hasMac ? .relay : .notification
+            settings.updatedAt = Date()
         }
-        let name = senderName.trimmingCharacters(in: .whitespacesAndNewlines)
-        if !name.isEmpty {
-            settings.senderName = name
-        }
-        settings.updatedAt = Date()
         repository.save()
+        if hasMac == true, normalizedHandle != nil {
+            repository.setMyHandle(handle.trimmingCharacters(in: .whitespacesAndNewlines))
+        }
         appState.completeOnboarding()
         Task {
             await NotificationScheduler.requestAuthorization()
             appState.dataDidChange()
         }
+    }
+}
+
+private struct PageDots: View {
+    let count: Int
+    let current: Int
+
+    var body: some View {
+        HStack(spacing: 8) {
+            ForEach(0..<count, id: \.self) { index in
+                Circle()
+                    .fill(index == current ? Color.accentColor : Color.secondary.opacity(0.3))
+                    .frame(width: 7, height: 7)
+            }
+        }
+        .accessibilityHidden(true)
     }
 }
 

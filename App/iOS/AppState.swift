@@ -11,11 +11,10 @@ final class AppState: ObservableObject {
     static let shared = AppState()
 
     enum Tab: Hashable {
-        case today, reminders, people, activity, settings
+        case today, reminders, activity, settings
     }
 
     @Published var selectedTab: Tab = .today
-    @Published var isShowingSendQueue = false
     @Published var isShowingOnboarding = false
     @Published var iCloudAccount = "Checking…"
     /// Bumped whenever data changes elsewhere (e.g. iCloud import) so views re-plan.
@@ -46,8 +45,9 @@ final class AppState: ObservableObject {
         if !hasCompletedOnboarding && !DemoMode.isEnabled {
             isShowingOnboarding = true
         }
-        repository.settings()
-        repository.pruneDeliveries(olderThanDays: repository.settings().logRetentionDays)
+        let settings = repository.settings()
+        repository.pruneDeliveries(olderThanDays: settings.logRetentionDays)
+        repository.pruneFinishedSnoozes()
         await NotificationScheduler.reschedule(using: repository)
         iCloudAccount = await DataStore.shared.iCloudAccountDescription()
         refreshToken = UUID()
@@ -56,11 +56,6 @@ final class AppState: ObservableObject {
     func completeOnboarding() {
         hasCompletedOnboarding = true
         isShowingOnboarding = false
-    }
-
-    func presentSendQueue() {
-        selectedTab = .today
-        isShowingSendQueue = true
     }
 
     /// Call after local edits; debounced so a burst of saves reschedules once.
@@ -72,5 +67,17 @@ final class AppState: ObservableObject {
             guard !Task.isCancelled, let self else { return }
             await NotificationScheduler.reschedule(using: self.repository)
         }
+    }
+}
+
+/// Automatic texts that should have gone out but have no delivery record yet,
+/// usually because the relay Mac is off, asleep or signed out of iCloud.
+@MainActor
+enum LateTexts {
+    static let lateAfter: TimeInterval = 10 * 60
+
+    static func messages(repository: Repository, now: Date = Date()) -> [PlannedMessage] {
+        let plan = repository.plan(method: .relay, lookback: 24 * 3_600, grace: 24 * 3_600, now: now)
+        return plan.toSend.filter { $0.occurrence < now.addingTimeInterval(-lateAfter) }
     }
 }

@@ -6,15 +6,15 @@ import ReminderCore
 
 struct SettingsView: View {
     @Environment(\.modelContext) private var modelContext
-    @ObservedObject private var appState = AppState.shared
     @Query(sort: \SharedSettings.createdAt) private var settingsRecords: [SharedSettings]
+    @Query(sort: \Recipient.createdAt) private var recipients: [Recipient]
     @Query(sort: \RelayHeartbeat.lastSeen, order: .reverse) private var heartbeats: [RelayHeartbeat]
 
     var body: some View {
         NavigationStack {
             Group {
                 if let settings = settingsRecords.first {
-                    SettingsForm(settings: settings, heartbeats: heartbeats)
+                    SettingsForm(settings: settings, me: recipients.first, heartbeats: heartbeats)
                 } else {
                     ProgressView()
                         .onAppear { Repository(context: modelContext).settings() }
@@ -27,6 +27,7 @@ struct SettingsView: View {
 
 private struct SettingsForm: View {
     @Bindable var settings: SharedSettings
+    let me: Recipient?
     let heartbeats: [RelayHeartbeat]
 
     @Environment(\.modelContext) private var modelContext
@@ -35,52 +36,59 @@ private struct SettingsForm: View {
 
     @State private var notificationStatus: UNAuthorizationStatus = .notDetermined
     @State private var isConfirmingLogDeletion = false
+    @State private var isEditingNumber = false
 
     var body: some View {
         Form {
             Section {
-                TextField("Your name or business", text: $settings.senderName)
-                HStack {
-                    Text("Default country code")
-                    Spacer()
-                    Text("+")
-                        .foregroundStyle(.secondary)
-                    TextField("1", text: $settings.defaultCountryCode)
-                        .keyboardType(.numberPad)
-                        .multilineTextAlignment(.trailing)
-                        .frame(width: 60)
+                Button {
+                    isEditingNumber = true
+                } label: {
+                    LabeledContent("Texts go to") {
+                        Text(me?.displayHandle ?? "Not set")
+                            .foregroundStyle(me == nil ? Color.orange : Color.secondary)
+                    }
+                }
+                .foregroundStyle(Color.primary)
+                if let me {
+                    Toggle("Pause all texts", isOn: Binding(
+                        get: { me.optedOut },
+                        set: { paused in
+                            me.setOptedOut(paused, source: "manual")
+                            save()
+                        }
+                    ))
                 }
                 Picker("New reminders", selection: Binding(
                     get: { settings.defaultMethod },
                     set: { settings.defaultMethod = $0 }
                 )) {
                     ForEach(DeliveryMethod.allCases) { method in
-                        Text(method.shortTitle).tag(method)
+                        Text(method.title).tag(method)
                     }
                 }
             } header: {
-                Text("Messages")
+                Text("Your texts")
             } footer: {
-                Text("Your name fills {sender} in messages. The country code is used for numbers typed without one.")
+                if me?.optedOut == true {
+                    Text("Texts are paused: reminders due now are logged as paused, not sent. Notification reminders still arrive.")
+                } else {
+                    Text("Use a number or email this iPhone receives iMessages on.")
+                }
             }
 
             Section {
-                Toggle("Add opt-out line", isOn: $settings.appendOptOutFooter)
+                Toggle("Snooze by replying", isOn: $settings.honorSnoozeReplies)
+                Toggle("STOP pauses, START resumes", isOn: $settings.honorOptOutReplies)
+                Toggle("Confirm replies", isOn: $settings.confirmReplies)
+                Toggle("Add a line to each text", isOn: $settings.appendOptOutFooter)
                 if settings.appendOptOutFooter {
-                    TextField("Opt-out line", text: $settings.optOutFooterText)
-                }
-                Toggle("Honor STOP replies", isOn: $settings.honorOptOutReplies)
-                if settings.honorOptOutReplies {
-                    Toggle("Confirm opt-outs", isOn: $settings.sendOptOutConfirmation)
-                    if settings.sendOptOutConfirmation {
-                        TextField("Confirmation", text: $settings.optOutConfirmationText, axis: .vertical)
-                            .lineLimit(2...4)
-                    }
+                    TextField("Line to add", text: $settings.optOutFooterText)
                 }
             } header: {
-                Text("Opt-outs")
+                Text("Replies")
             } footer: {
-                Text("The Mac relay watches replies and marks anyone who texts STOP, UNSUBSCRIBE, CANCEL and similar as opted out, then sends the confirmation once. Replying START opts them back in. Needs Full Disk Access on the Mac.")
+                Text("Reply SNOOZE for another text in 10 minutes, or SNOOZE 30, 2H, LATER. STOP pauses every text until you reply START. Needs Full Disk Access for BlueNudge Relay on the Mac.")
             }
 
             Section {
@@ -93,19 +101,15 @@ private struct SettingsForm: View {
                 }
                 NavigationLink("Set up the Mac relay") { RelaySetupGuideView() }
                 Stepper(value: $settings.graceMinutes, in: 5...1_440, step: 5) {
-                    LabeledContent("Send late messages for", value: Self.minutesText(settings.graceMinutes))
+                    LabeledContent("Send late texts for", value: Self.minutesText(settings.graceMinutes))
                 }
-                Stepper(value: $settings.hourlySendCap, in: 5...500, step: 5) {
-                    LabeledContent("Max per hour", value: "\(settings.hourlySendCap)")
+                Stepper(value: $settings.hourlySendCap, in: 5...120, step: 5) {
+                    LabeledContent("Max texts per hour", value: "\(settings.hourlySendCap)")
                 }
-                Stepper(value: $settings.secondsBetweenSends, in: 1...60) {
-                    LabeledContent("Gap between messages", value: "\(settings.secondsBetweenSends) s")
-                }
-                Toggle("Fall back to SMS", isOn: $settings.smsFallback)
             } header: {
                 Text("Mac relay")
             } footer: {
-                Text("If the Mac was asleep or offline, reminders later than the window above are logged as missed instead of arriving late. The hourly cap and gap keep sending patterns normal so Apple doesn't flag the account. SMS fallback retries failed iMessages as texts through your iPhone (Text Message Forwarding).")
+                Text("If the Mac was asleep or offline, texts later than this are logged as missed instead of arriving late.")
             }
 
             Section {
@@ -123,11 +127,10 @@ private struct SettingsForm: View {
                         if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
                     }
                 }
-                NavigationLink("Send automatically with Shortcuts") { ShortcutsGuideView() }
             } header: {
-                Text("Tap to send")
+                Text("Notification reminders")
             } footer: {
-                Text("Tap-to-send reminders alert you at the scheduled time with the message ready to go.")
+                Text("\"Notification only\" reminders work without a Mac. Long-press one to snooze it for 10 minutes.")
             }
 
             Section {
@@ -139,7 +142,7 @@ private struct SettingsForm: View {
                 Stepper(value: $settings.logRetentionDays, in: 7...730, step: 7) {
                     LabeledContent("Keep activity for", value: "\(settings.logRetentionDays) days")
                 }
-                Button("Clear activity log", role: .destructive) { isConfirmingLogDeletion = true }
+                Button("Clear activity", role: .destructive) { isConfirmingLogDeletion = true }
             } header: {
                 Text("Data")
             } footer: {
@@ -148,19 +151,18 @@ private struct SettingsForm: View {
 
             Section("About") {
                 LabeledContent("Version", value: DeviceInfo.appVersion)
-                NavigationLink("Costs and limits") { CostsView() }
+                NavigationLink("How it works and what it costs") { CostsView() }
             }
         }
         .task { await refreshNotificationStatus() }
-        .onChange(of: settings.defaultCountryCode) { _, newValue in
-            let digits = newValue.filter(\.isNumber)
-            if digits != newValue { settings.defaultCountryCode = digits }
-        }
         .onDisappear(perform: save)
-        .confirmationDialog("Clear the whole activity log?", isPresented: $isConfirmingLogDeletion, titleVisibility: .visible) {
-            Button("Clear log", role: .destructive, action: clearLog)
+        .sheet(isPresented: $isEditingNumber) {
+            NavigationStack { MyNumberView() }
+        }
+        .confirmationDialog("Clear all activity?", isPresented: $isConfirmingLogDeletion, titleVisibility: .visible) {
+            Button("Clear activity", role: .destructive, action: clearLog)
         } message: {
-            Text("This removes delivery history on every device. Reminders due in the next day could be sent again if their records are gone, so only do this when nothing is due.")
+            Text("This removes the history on every device. Reminders due in the next day could be texted again if their records are gone, so only do this when nothing is due.")
         }
     }
 
@@ -208,48 +210,31 @@ struct RelaySetupGuideView: View {
     var body: some View {
         List {
             Section {
-                Text("The relay is the only way to send iMessages fully unattended: Apple doesn't let iPhone apps send messages on their own. Any Mac on macOS 14 or later that stays on works, and it costs nothing per message.")
+                Text("iPhone apps can't send texts on their own. BlueNudge Relay runs on a Mac and texts your reminders to you through Messages. Any Mac on macOS 14 or later that stays on works, and there's no charge per text.")
             }
-            Section("On the Mac") {
-                GuideStep(number: 1, text: "Open Messages and sign in with the Apple Account (or iPhone number) the reminders should come from.")
-                GuideStep(number: 2, text: "Sign in to iCloud with the same Apple Account this iPhone uses, so the relay sees your reminders.")
-                GuideStep(number: 3, text: "Build and run the BlueNudgeRelay target from the Xcode project. It lives in the menu bar.")
-                GuideStep(number: 4, text: "Click Grant access when the relay asks to control Messages.")
-                GuideStep(number: 5, text: "Optional: give BlueNudge Relay Full Disk Access (System Settings › Privacy & Security) so it can confirm delivery and handle STOP replies.")
+            Section {
+                GuideStep(number: 1, text: "Create a second Apple Account for the Mac to text from (free at account.apple.com). If the Mac texted from your own account, the texts would look like you sent them and your iPhone wouldn't alert you.")
+                GuideStep(number: 2, text: "On the Mac, open Messages › Settings › iMessage and sign in with that second account. Keep the Mac's iCloud (System Settings) on your own account so it sees your reminders.")
+                GuideStep(number: 3, text: "Build and run BlueNudgeRelay from the Xcode project. It lives in the menu bar.")
+                GuideStep(number: 4, text: "Click Grant access when it asks to control Messages.")
+                GuideStep(number: 5, text: "Give BlueNudge Relay Full Disk Access (System Settings › Privacy & Security) so it can read replies like SNOOZE and STOP and confirm delivery.")
                 GuideStep(number: 6, text: "Turn on Open at login and Keep this Mac awake in the relay window.")
+            } header: {
+                Text("On the Mac")
             }
-            Section("For SMS fallback") {
-                GuideStep(number: 1, text: "On this iPhone: Settings › Apps › Messages › Text Message Forwarding, and allow the Mac.")
-                GuideStep(number: 2, text: "Turn on Fall back to SMS in Settings here.")
+            Section {
+                GuideStep(number: 1, text: "Save the second account's email as a contact named BlueNudge, so its texts don't land in Unknown Senders without an alert.")
+                GuideStep(number: 2, text: "Enter your number in BlueNudge › Settings › Texts go to.")
+                GuideStep(number: 3, text: "Use Send Test in the relay window to check a text arrives.")
+            } header: {
+                Text("On this iPhone")
             }
             Section("Good to know") {
-                Text("Keep volumes reasonable and only message people who agreed to it. Apple can restrict accounts that send lots of unsolicited messages.")
-                Text("Automatic reminders show up as Late on the Today screen when the relay misses them, with a button to send them from the iPhone instead.")
+                Text("When the Mac is off or asleep, texts wait. Late ones show on the Today screen, and anything later than the window in Settings is logged as missed.")
+                Text("Apple can restrict accounts that send large numbers of automated messages. Reminders to yourself are low volume; keep hourly ones to waking hours.")
             }
         }
         .navigationTitle("Mac relay")
-    }
-}
-
-struct ShortcutsGuideView: View {
-    var body: some View {
-        List {
-            Section {
-                Text("Shortcuts can send tap-to-send messages without you touching the phone, at fixed times of day. iOS sometimes skips automations while the iPhone is locked, so treat this as best-effort; the Mac relay is the reliable option.")
-            }
-            Section("Build the shortcut") {
-                GuideStep(number: 1, text: "Open Shortcuts › Automation › New Automation › Time of Day, pick a time (e.g. 9:00 AM daily) and choose Run Immediately.")
-                GuideStep(number: 2, text: "Add the action Get Due BlueNudge Messages.")
-                GuideStep(number: 3, text: "Add Repeat with Each, using the messages from step 2.")
-                GuideStep(number: 4, text: "Inside the loop add Send Message: set Message to Repeat Item › Text and Recipients to Repeat Item › Handle. Turn off Show When Run.")
-                GuideStep(number: 5, text: "Still inside the loop add Mark BlueNudge Message Sent with Repeat Item.")
-                GuideStep(number: 6, text: "Repeat the automation for any other times you need.")
-            }
-            Section {
-                Text("Messages sent this way are logged as sent via Shortcuts on every device.")
-            }
-        }
-        .navigationTitle("Shortcuts")
     }
 }
 
@@ -257,18 +242,21 @@ struct CostsView: View {
     var body: some View {
         List {
             Section("What it costs") {
-                LabeledContent("Per message", value: "$0")
+                LabeledContent("Per text", value: "$0")
                 LabeledContent("Servers", value: "None")
                 LabeledContent("Sync", value: "Your iCloud")
-                Text("Messages go out through the Messages app from your own Apple Account or number, so there are no per-text fees like SMS gateways charge. Sync uses your private iCloud database, which Apple provides free with a developer account.")
+                Text("Texts go out through Messages on your Mac, so there are no per-text fees like SMS services charge. Reminders sync through your private iCloud database.")
+            }
+            Section("How it works") {
+                Text("Your reminders live in your iCloud. BlueNudge Relay on the Mac sees them, and at the right time asks Messages to text you. Your iPhone gets it like any other text.")
+                Text("Replies go back to the Mac. The relay reads them to snooze or pause, which needs Full Disk Access.")
             }
             Section("Limits") {
-                Text("iPhone apps cannot send messages by themselves; Apple requires a tap. That is why unattended sending needs the Mac relay.")
-                Text("Recipients without iMessage (Android) need SMS fallback through your iPhone, which uses your carrier plan.")
-                Text("iOS keeps at most 64 scheduled notifications per app, so tap-to-send alerts are scheduled for the next 60 occurrences and refreshed whenever the app opens.")
+                Text("iPhone apps can't send texts by themselves; Apple requires a tap. That's why texts need the Mac.")
+                Text("Without a Mac, choose Notification only. iOS keeps up to 64 scheduled notifications per app, so the next 60 are scheduled and refreshed whenever the app opens.")
             }
         }
-        .navigationTitle("Costs and limits")
+        .navigationTitle("How it works")
     }
 }
 

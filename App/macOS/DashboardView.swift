@@ -73,8 +73,8 @@ private struct SetupView: View {
 
             Section("Messages") {
                 ChecklistRow(
-                    title: "Messages is signed in",
-                    detail: "Open Messages and sign in with the Apple Account or iPhone number reminders should come from.",
+                    title: "Messages uses a second Apple Account",
+                    detail: "In Messages › Settings › iMessage, sign in with an Apple Account that isn't the one on your iPhone. Texts from your own account show up as sent by you, so your iPhone won't alert you. Leave this Mac's iCloud (System Settings) on your own account.",
                     state: .info
                 ) {
                     Button("Open Messages") { MessagesSender.openMessages() }
@@ -93,10 +93,10 @@ private struct SetupView: View {
                     }
                 }
                 ChecklistRow(
-                    title: "Full Disk Access (optional)",
+                    title: "Full Disk Access (recommended)",
                     detail: engine.hasFullDiskAccess
-                        ? "Delivery confirmations, SMS fallback on failure and STOP replies are on."
-                        : "Lets the relay read the Messages database to confirm delivery and honor STOP replies. Add BlueNudge Relay under Full Disk Access, then click Recheck.",
+                        ? "Replies (SNOOZE, STOP, START) and delivery confirmations are on."
+                        : "Lets the relay read your replies (SNOOZE, STOP, START) and confirm delivery. Add BlueNudge Relay under Full Disk Access, then click Recheck.",
                     state: engine.hasFullDiskAccess ? .done : .optional
                 ) {
                     if !engine.hasFullDiskAccess {
@@ -114,8 +114,8 @@ private struct SetupView: View {
                 ) {
                     EmptyView()
                 }
-                LabeledContent("Automatic reminders seen", value: "\(engine.automaticRemindersSeen)")
-                LabeledContent("People seen", value: "\(engine.peopleSeen)")
+                LabeledContent("Texts go to", value: engine.textsGoTo ?? "Not set yet. Add it in the iPhone app › Settings.")
+                LabeledContent("Text reminders", value: "\(engine.automaticRemindersSeen)")
             }
 
             Section("Keep it running") {
@@ -153,7 +153,7 @@ private struct SetupView: View {
                     get: { !prefs.isPaused },
                     set: { engine.setPaused(!$0) }
                 )) {
-                    Text("Send automatic reminders")
+                    Text("Send texts")
                 }
             }
 
@@ -254,12 +254,14 @@ private struct RelayActivityView: View {
                     Text((record.sentAt ?? record.createdAt).formatted(date: .abbreviated, time: .shortened))
                 }
                 .width(min: 120, ideal: 140)
-                TableColumn("To") { record in
-                    Text(record.displayRecipient)
-                }
-                .width(min: 100, ideal: 140)
                 TableColumn("Reminder") { record in
                     Text(record.reminderTitle)
+                }
+                .width(min: 100, ideal: 150)
+                TableColumn("Text") { record in
+                    Text(record.messageText)
+                        .foregroundStyle(.secondary)
+                        .help(record.messageText)
                 }
                 TableColumn("Status") { record in
                     Text(record.status.title)
@@ -313,33 +315,27 @@ private struct TestSendView: View {
     @ObservedObject private var engine = RelayEngine.shared
 
     @State private var handle = ""
-    @State private var text = "Test from BlueNudge Relay ✅"
-    @State private var useSMS = false
+    @State private var text = "BlueNudge test ✅ If your iPhone buzzed, you're all set."
     @State private var result: String?
     @State private var isSending = false
 
     var body: some View {
         Form {
             Section {
-                TextField("Phone number or iMessage email", text: $handle)
+                TextField("Your phone number or iMessage email", text: $handle)
                 TextField("Message", text: $text, axis: .vertical)
                     .lineLimit(2...5)
-                Picker("Service", selection: $useSMS) {
-                    Text("iMessage").tag(false)
-                    Text("SMS (via iPhone)").tag(true)
-                }
-                .pickerStyle(.segmented)
             } footer: {
-                Text("Sends one message right now to check Messages access. It is not added to the reminder log.")
+                Text("Sends one text right now. It should arrive on your iPhone as a new message from the relay's Apple Account, with an alert. It isn't added to Activity.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
             Section {
                 HStack {
-                    Button("Send test message") {
+                    Button("Send test text") {
                         isSending = true
                         Task {
-                            result = await engine.sendTest(to: handle, text: text, service: useSMS ? .sms : .iMessage)
+                            result = await engine.sendTest(to: handle, text: text, service: .iMessage)
                             isSending = false
                         }
                     }
@@ -355,6 +351,11 @@ private struct TestSendView: View {
         }
         .formStyle(.grouped)
         .navigationTitle("Test")
+        .onAppear {
+            if handle.isEmpty, let textsGoTo = engine.textsGoTo {
+                handle = textsGoTo
+            }
+        }
     }
 }
 
@@ -387,28 +388,31 @@ private struct RelaySettingsForm: View {
         Form {
             Section {
                 Stepper(value: $settings.graceMinutes, in: 5...1_440, step: 5) {
-                    LabeledContent("Send late reminders for up to", value: "\(settings.graceMinutes) min")
+                    LabeledContent("Send late texts for up to", value: "\(settings.graceMinutes) min")
                 }
-                Stepper(value: $settings.hourlySendCap, in: 5...500, step: 5) {
-                    LabeledContent("Max messages per hour", value: "\(settings.hourlySendCap)")
+                Stepper(value: $settings.hourlySendCap, in: 5...120, step: 5) {
+                    LabeledContent("Max texts per hour", value: "\(settings.hourlySendCap)")
                 }
                 Stepper(value: $settings.secondsBetweenSends, in: 1...60) {
-                    LabeledContent("Gap between messages", value: "\(settings.secondsBetweenSends) s")
+                    LabeledContent("Gap between texts", value: "\(settings.secondsBetweenSends) s")
                 }
-                Toggle("Fall back to SMS when iMessage fails", isOn: $settings.smsFallback)
             } header: {
                 Text("Sending")
             } footer: {
-                Text("These sync with the iPhone app. SMS fallback needs Text Message Forwarding from your iPhone to this Mac.")
+                Text("These sync with the iPhone app.")
             }
 
-            Section("Opt-outs") {
-                Toggle("Honor STOP replies", isOn: $settings.honorOptOutReplies)
-                Toggle("Send a confirmation", isOn: $settings.sendOptOutConfirmation)
-                    .disabled(!settings.honorOptOutReplies)
-                TextField("Confirmation", text: $settings.optOutConfirmationText, axis: .vertical)
+            Section {
+                Toggle("Snooze by replying", isOn: $settings.honorSnoozeReplies)
+                Toggle("STOP pauses, START resumes", isOn: $settings.honorOptOutReplies)
+                Toggle("Confirm replies", isOn: $settings.confirmReplies)
+                TextField("Reply to STOP", text: $settings.optOutConfirmationText, axis: .vertical)
                     .lineLimit(2...4)
-                    .disabled(!settings.honorOptOutReplies || !settings.sendOptOutConfirmation)
+                    .disabled(!settings.honorOptOutReplies || !settings.confirmReplies)
+            } header: {
+                Text("Replies")
+            } footer: {
+                Text("Replies are read from the Messages database, which needs Full Disk Access.")
             }
 
             Section("Other relays") {

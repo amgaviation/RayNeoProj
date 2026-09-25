@@ -49,11 +49,11 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
         Task { @MainActor in
             switch action {
             case NotificationScheduler.snoozeAction:
-                await NotificationScheduler.snooze(content: content, minutes: 15)
+                await NotificationScheduler.snooze(content: content, minutes: 10)
             case UNNotificationDismissActionIdentifier:
                 break
             default:
-                AppState.shared.presentSendQueue()
+                AppState.shared.selectedTab = .today
             }
             completionHandler()
         }

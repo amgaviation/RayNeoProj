@@ -2,11 +2,11 @@ import Foundation
 import SwiftData
 import ReminderCore
 
-/// Demo mode fills an in-memory store with sample people, reminders and history,
-/// for screenshots and App Store previews. It never touches real data and is
-/// only reachable in Debug builds:
+/// Demo mode fills an in-memory store with sample reminders and history, for
+/// screenshots and App Store previews. It never touches real data and is only
+/// reachable in Debug builds:
 ///
-///     -BlueNudgeDemo YES [-BlueNudgeScreen today|queue|reminders|editor|people|activity|settings|onboarding]
+///     -BlueNudgeDemo YES [-BlueNudgeScreen today|reminders|editor|activity|settings|onboarding]
 ///     -BlueNudgeSnapshot <folder>   (Mac relay: write window images there, then quit)
 enum DemoMode {
     static var isEnabled: Bool {
@@ -29,8 +29,8 @@ enum DemoMode {
 
 @MainActor
 enum DemoData {
-    static let editorReminderTitle = "Weekly team check-in"
-    static let relayName = "Office Mac mini"
+    static let editorReminderTitle = "Drink water"
+    static let relayName = "Home Mac mini"
 
     static func seed(into context: ModelContext) {
         let repository = Repository(context: context)
@@ -44,155 +44,90 @@ enum DemoData {
         }
 
         let settings = SharedSettings()
-        settings.senderName = "Coastal Dental"
         settings.defaultCountryCode = "1"
         settings.defaultMethod = .relay
-        settings.appendOptOutFooter = true
         context.insert(settings)
 
-        func person(_ name: String, _ raw: String, _ handle: String) -> Recipient {
-            let recipient = Recipient(name: name, rawHandle: raw, handle: handle)
-            context.insert(recipient)
-            return recipient
-        }
-        let maria = person("Maria Lopez", "(512) 555-0142", "+15125550142")
-        let james = person("James Carter", "(512) 555-0187", "+15125550187")
-        let priya = person("Priya Shah", "priya.shah@icloud.com", "priya.shah@icloud.com")
-        let daniel = person("Daniel Kim", "(737) 555-0110", "+17375550110")
-        let leo = person("Leo Park", "(415) 555-0131", "+14155550131")
-        let olivia = person("Olivia Brooks", "(512) 555-0199", "+15125550199")
-        olivia.setOptedOut(true, source: "reply")
-        let sam = person("Sam Rivera", "(206) 555-0123", "+12065550123")
-        let ana = person("Ana Torres", "(305) 555-0168", "+13055550168")
+        let me = Recipient(name: "Me", rawHandle: "(512) 555-0142", handle: "+15125550142")
+        context.insert(me)
 
         let weekAgo = now.addingTimeInterval(-7 * 86_400)
         func reminder(
             _ title: String,
-            _ template: String,
+            _ message: String,
             _ schedule: Schedule,
-            _ people: [Recipient],
-            _ method: DeliveryMethod,
-            activeSince: Date
+            _ method: DeliveryMethod = .relay,
+            activeSince: Date? = nil
         ) -> Reminder {
-            let created = Reminder(title: title, messageTemplate: template, schedule: schedule, recipientIDs: people.map(\.id), method: method)
-            created.activeSince = activeSince
+            let created = Reminder(title: title, messageTemplate: message, schedule: schedule, recipientIDs: [me.id], method: method)
+            created.activeSince = activeSince ?? weekAgo
             created.createdAt = weekAgo
             context.insert(created)
             return created
         }
 
         _ = reminder(
-            "Appointment reminder",
-            "Hi {first_name}, this is {sender} reminding you of your cleaning on {weekday}, {date} at {time}. Reply C to confirm.",
-            Schedule(frequency: .once, start: at(10, 30, daysFromToday: 1), timeZoneIdentifier: zone),
-            [maria],
-            .relay,
-            activeSince: weekAgo
+            "Take vitamins",
+            "Take your vitamins 💊",
+            Schedule(frequency: .daily, start: at(8, 0, daysFromToday: -10), timeZoneIdentifier: zone)
         )
         _ = reminder(
             editorReminderTitle,
-            "Morning {first_name}! Team check-in at {time} today. Agenda is in the shared folder.",
-            Schedule(frequency: .weekly, start: at(9, 0, daysFromToday: -14), weekdays: [2, 4, 6], timeZoneIdentifier: zone),
-            [james, daniel, priya, leo],
-            .relay,
-            activeSince: weekAgo
+            "Time for a glass of water 💧",
+            Schedule(
+                frequency: .hourly,
+                start: at(9, 0, daysFromToday: -10),
+                interval: 2,
+                timeZoneIdentifier: zone,
+                activeMinutes: (9 * 60)...(21 * 60)
+            )
         )
         _ = reminder(
-            "Invoice follow-up",
-            "Hi {first_name}, a quick nudge on the invoice sent last week. Let me know if you have any questions. – {sender}",
-            Schedule(frequency: .weekly, start: at(15, 0, daysFromToday: -12), interval: 2, weekdays: [6], timeZoneIdentifier: zone),
-            [priya],
-            .relay,
-            activeSince: weekAgo
+            "Call Mom",
+            "Call Mom ☎️ It's Sunday!",
+            Schedule(frequency: .weekly, start: at(18, 0, daysFromToday: -14), weekdays: [1], timeZoneIdentifier: zone)
         )
         _ = reminder(
-            "Rent reminder",
-            "Hi {first_name}, friendly reminder that rent is due {date}. Thank you!",
-            Schedule(frequency: .monthly, start: at(9, 0, daysFromToday: 3), timeZoneIdentifier: zone),
-            [sam],
-            .tapToSend,
+            "Credit card",
+            "Credit card payment is due {date}. Pay it today 💳",
+            Schedule(frequency: .monthly, start: at(9, 0, daysFromToday: 5), timeZoneIdentifier: zone)
+        )
+        _ = reminder(
+            "Dentist",
+            "Dentist at 10:30 today. Leave by 10:00 🦷",
+            Schedule(frequency: .once, start: at(8, 30, daysFromToday: 1), timeZoneIdentifier: zone)
+        )
+        _ = reminder(
+            "Trash night",
+            "Trash and recycling go out tonight 🗑️",
+            Schedule(frequency: .weekly, start: at(20, 0, daysFromToday: -14), weekdays: [4], timeZoneIdentifier: zone),
+            .notification,
             activeSince: now.addingTimeInterval(-300)
         )
-        _ = reminder(
-            "Order ready for pickup",
-            "Hi {first_name}, your order is ready for pickup today. See you soon!",
-            Schedule(frequency: .once, start: now.addingTimeInterval(-20 * 60), timeZoneIdentifier: zone),
-            [ana, sam],
-            .tapToSend,
-            activeSince: now.addingTimeInterval(-30 * 60)
+        let snoozed = reminder(
+            "Snoozed: Call the pharmacy",
+            "Call the pharmacy about the refill",
+            Schedule(frequency: .once, start: now.addingTimeInterval(20 * 60).roundedUpToMinute(), timeZoneIdentifier: zone),
+            activeSince: now.addingTimeInterval(-60)
         )
-        _ = reminder(
-            "Evening medication",
-            "Time for your evening meds, {first_name} 💊",
-            Schedule(frequency: .daily, start: at(20, 0, daysFromToday: -3), timeZoneIdentifier: zone),
-            [daniel],
-            .tapToSend,
-            activeSince: now.addingTimeInterval(-300)
-        )
+        snoozed.notes = Reminder.snoozeNote
         let paused = reminder(
-            "Holiday hours",
-            "Hi {first_name}, {sender} is closed Monday for the holiday.",
-            Schedule(frequency: .yearly, start: at(9, 0, daysFromToday: 40), timeZoneIdentifier: zone),
-            [maria, james, priya],
-            .relay,
-            activeSince: weekAgo
+            "Stand up and stretch",
+            "Stand up and stretch for a minute 🧘",
+            Schedule(frequency: .hourly, start: at(10, 0, daysFromToday: -10), timeZoneIdentifier: zone, activeMinutes: 600...1_020)
         )
         paused.isActive = false
         repository.save()
 
-        // History: everything the relay would have sent over the last few days.
-        let history = repository.plan(method: .relay, lookback: 4 * 86_400, grace: 4 * 86_400, now: now)
+        // History: every text the relay would have sent over the last few days.
+        let history = repository.plan(method: .relay, lookback: 3 * 86_400, grace: 3 * 86_400, now: now)
         for message in history.toSend + history.missed {
             let record = repository.record(message, status: .delivered, channel: .relay, deviceName: relayName)
             record.createdAt = message.occurrence.addingTimeInterval(1)
             record.sentAt = message.occurrence.addingTimeInterval(2)
-            record.deliveredAt = message.occurrence.addingTimeInterval(6)
+            record.deliveredAt = message.occurrence.addingTimeInterval(4)
             record.serviceUsed = "iMessage"
-            if message.recipientID == leo.id {
-                // An Android number: iMessage fails, the relay resends as SMS.
-                record.status = .sent
-                record.serviceUsed = "SMS"
-                record.deliveredAt = nil
-                record.errorMessage = "iMessage wasn't delivered, resent as SMS."
-            }
         }
-        for message in history.optedOut {
-            let record = repository.record(message, status: .optedOut, channel: .relay, deviceName: relayName)
-            record.createdAt = message.occurrence.addingTimeInterval(1)
-        }
-
-        // A STOP reply the relay picked up.
-        let stop = PlannedMessage(
-            key: "optout|demo|1",
-            reminderID: olivia.id,
-            recipientID: olivia.id,
-            occurrence: now.addingTimeInterval(-26 * 3_600),
-            reminderTitle: "Opted out by reply",
-            recipientName: olivia.name,
-            handle: olivia.handle,
-            service: .auto,
-            text: "STOP"
-        )
-        let stopRecord = repository.record(stop, status: .optedOut, channel: .relay, deviceName: relayName,
-                                           error: "They replied “STOP” and won't get further reminders.")
-        stopRecord.reminderID = nil
-        stopRecord.createdAt = stop.occurrence
-
-        // A tap-to-send reminder sent from the iPhone last week.
-        let rent = PlannedMessage(
-            key: "demo|rent|1",
-            reminderID: UUID(),
-            recipientID: sam.id,
-            occurrence: now.addingTimeInterval(-6 * 86_400),
-            reminderTitle: "Rent reminder",
-            recipientName: sam.name,
-            handle: sam.handle,
-            service: .auto,
-            text: "Hi Sam, friendly reminder that rent is due soon. Thank you!"
-        )
-        let rentRecord = repository.record(rent, status: .sent, channel: .iPhone, deviceName: "iPhone")
-        rentRecord.createdAt = rent.occurrence.addingTimeInterval(40)
-        rentRecord.sentAt = rentRecord.createdAt
 
         let heartbeat = RelayHeartbeat(deviceID: "demo-relay", deviceName: relayName)
         heartbeat.lastSeen = now.addingTimeInterval(-45)
@@ -202,5 +137,12 @@ enum DemoData {
         context.insert(heartbeat)
 
         repository.save()
+    }
+}
+
+private extension Date {
+    func roundedUpToMinute() -> Date {
+        let seconds = timeIntervalSinceReferenceDate
+        return Date(timeIntervalSinceReferenceDate: (seconds / 60).rounded(.up) * 60)
     }
 }

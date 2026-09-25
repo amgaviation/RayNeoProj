@@ -41,21 +41,42 @@ xcrun simctl status_bar "$UDID" override \
   --batteryState charged --batteryLevel 100 || true
 xcrun simctl install "$UDID" "$APP"
 
+DIAG="$OUT/diagnostics"
+mkdir -p "$DIAG"
+
+app_pid() {
+  pgrep -f "BlueNudge.app/BlueNudge" | head -1 || true
+}
+
 shoot() {
   local screen="$1" name="$2" wait="$3"
   xcrun simctl launch --terminate-running-process "$UDID" "$BUNDLE_ID" \
     -BlueNudgeDemo YES -BlueNudgeScreen "$screen" >/dev/null
   sleep "$wait"
   xcrun simctl io "$UDID" screenshot --type=png "$OUT/iphone-$name.png"
+  local pid
+  pid=$(app_pid)
+  if [ -z "$pid" ]; then
+    echo "::warning::$name: the app wasn't running when captured (crashed?)"
+    ls -t ~/Library/Logs/DiagnosticReports/BlueNudge* 2>/dev/null | head -1 | xargs -I{} cp {} "$DIAG/" || true
+  else
+    # A stack sample shows where the main thread is if a screen came out blank.
+    sample "$pid" 1 -file "$DIAG/$name-sample.txt" >/dev/null 2>&1 || true
+  fi
   echo "Captured $name"
 }
 
 xcrun simctl ui "$UDID" appearance light
-shoot today today 12   # first launch is slow
-shoot queue send-queue 7
+
+# Warm up: the first launch after boot is slow and the system shows one-time
+# banners for a while. Run once and discard.
+xcrun simctl launch "$UDID" "$BUNDLE_ID" -BlueNudgeDemo YES >/dev/null
+sleep 25
+xcrun simctl terminate "$UDID" "$BUNDLE_ID" 2>/dev/null || true
+
+shoot today today 8
 shoot reminders reminders 7
-shoot editor editor 7
-shoot people people 7
+shoot editor editor 8
 shoot activity activity 7
 shoot settings settings 7
 shoot onboarding onboarding 7

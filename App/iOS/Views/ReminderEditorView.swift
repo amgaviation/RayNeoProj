@@ -2,31 +2,34 @@ import SwiftUI
 import SwiftData
 import ReminderCore
 
-/// Create or edit a reminder: message, recipients, schedule and delivery method.
+/// Create or edit a reminder: what it says, when, and how it reaches you.
 struct ReminderEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
     @ObservedObject private var appState = AppState.shared
 
-    @Query(sort: \Recipient.name) private var allRecipients: [Recipient]
+    @Query(sort: \Recipient.createdAt) private var recipients: [Recipient]
     @Query(sort: \RelayHeartbeat.lastSeen, order: .reverse) private var heartbeats: [RelayHeartbeat]
 
     let reminder: Reminder?
 
     @State private var title = ""
     @State private var message = ""
-    @State private var recipientIDs: [UUID] = []
     @State private var frequency: Schedule.Frequency = .once
     @State private var start = Date().addingTimeInterval(3_600)
     @State private var interval = 1
     @State private var weekdays: Set<Int> = []
+    @State private var limitHours = true
+    @State private var activeFrom = ReminderEditorView.clock(9 * 60)
+    @State private var activeTo = ReminderEditorView.clock(21 * 60)
     @State private var endMode: EndMode = .never
     @State private var endDate = Date().addingTimeInterval(30 * 86_400)
     @State private var endCount = 10
-    @State private var method: DeliveryMethod = .tapToSend
+    @State private var method: DeliveryMethod = .relay
     @State private var isActive = true
     @State private var hasLoaded = false
     @State private var isConfirmingDelete = false
+    @State private var isEditingNumber = false
 
     enum EndMode: String, CaseIterable, Identifiable {
         case never, onDate, afterCount
@@ -40,15 +43,16 @@ struct ReminderEditorView: View {
         }
     }
 
+    /// Placeholders that make sense in a text to yourself.
+    private static let tokens = TemplateRenderer.tokens.filter { ["time", "date", "weekday", "title"].contains($0.name) }
+
     init(reminder: Reminder?) {
         self.reminder = reminder
     }
 
     private var repository: Repository { Repository(context: modelContext) }
 
-    private var directory: [UUID: Recipient] {
-        Dictionary(allRecipients.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first })
-    }
+    private var me: Recipient? { recipients.first }
 
     private var draftSchedule: Schedule {
         let end: Schedule.End
@@ -62,24 +66,20 @@ struct ReminderEditorView: View {
             start: start,
             interval: interval,
             weekdays: frequency == .weekly ? weekdays.sorted() : [],
-            end: end,
-            timeZoneIdentifier: TimeZone.current.identifier
+            end: frequency == .once ? .never : end,
+            timeZoneIdentifier: TimeZone.current.identifier,
+            activeMinutes: frequency == .hourly && limitHours ? Self.minutes(activeFrom)...max(Self.minutes(activeFrom), Self.minutes(activeTo)) : nil
         ).truncatedToMinute()
     }
 
     private var canSave: Bool {
-        !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !recipientIDs.isEmpty
+        !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     var body: some View {
         NavigationStack {
             Form {
-                Section {
-                    TextField("Title (only you see this)", text: $title)
-                }
-
                 messageSection
-                recipientsSection
                 scheduleSection
                 deliverySection
 
@@ -108,6 +108,9 @@ struct ReminderEditorView: View {
                 }
             }
             .onAppear(perform: loadIfNeeded)
+            .sheet(isPresented: $isEditingNumber) {
+                NavigationStack { MyNumberView() }
+            }
             .confirmationDialog("Delete this reminder?", isPresented: $isConfirmingDelete, titleVisibility: .visible) {
                 Button("Delete", role: .destructive) {
                     if let reminder {
@@ -117,7 +120,7 @@ struct ReminderEditorView: View {
                     dismiss()
                 }
             } message: {
-                Text("Its delivery history stays in Activity.")
+                Text("Its history stays in Activity.")
             }
         }
     }
@@ -126,20 +129,22 @@ struct ReminderEditorView: View {
 
     private var messageSection: some View {
         Section {
-            TextEditor(text: $message)
-                .frame(minHeight: 110)
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 6) {
-                    ForEach(TemplateRenderer.tokens) { token in
-                        Button(token.placeholder) { insert(token) }
-                            .buttonStyle(.bordered)
-                            .font(.caption)
+            TextField("Remind me to…", text: $message, axis: .vertical)
+                .lineLimit(2...6)
+            TextField("Short title (optional)", text: $title)
+            Menu {
+                ForEach(Self.tokens) { token in
+                    Button {
+                        insert(token)
+                    } label: {
+                        Text("\(token.placeholder)  \(token.summary)")
                     }
                 }
-                .padding(.vertical, 2)
+            } label: {
+                Label("Insert time or date", systemImage: "curlybraces")
             }
         } header: {
-            Text("Message")
+            Text("Text")
         } footer: {
             VStack(alignment: .leading, spacing: 6) {
                 let unknown = TemplateRenderer.unknownTokens(in: message)
@@ -148,49 +153,9 @@ struct ReminderEditorView: View {
                         .foregroundStyle(.orange)
                 }
                 if !message.isEmpty {
-                    Text("Preview: \(previewText)")
+                    Text("You'll get: \(previewText)")
                 }
             }
-        }
-    }
-
-    private var recipientsSection: some View {
-        Section {
-            NavigationLink {
-                RecipientPickerView(selection: $recipientIDs)
-            } label: {
-                HStack {
-                    Text("Recipients")
-                    Spacer()
-                    Text(recipientIDs.isEmpty ? "Choose" : "\(recipientIDs.count) selected")
-                        .foregroundStyle(.secondary)
-                }
-            }
-            ForEach(recipientIDs, id: \.self) { id in
-                if let recipient = directory[id] {
-                    HStack {
-                        VStack(alignment: .leading) {
-                            Text(recipient.displayName)
-                            Text(recipient.displayHandle)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
-                        }
-                        Spacer()
-                        if recipient.optedOut {
-                            Text("Opted out").font(.caption).foregroundStyle(.purple)
-                        } else if !recipient.hasValidHandle {
-                            Text("Invalid number").font(.caption).foregroundStyle(.red)
-                        }
-                    }
-                }
-            }
-            .onDelete { offsets in
-                recipientIDs.remove(atOffsets: offsets)
-            }
-        } header: {
-            Text("Send to")
-        } footer: {
-            Text("Each person gets their own private message, never a group chat.")
         }
     }
 
@@ -202,7 +167,16 @@ struct ReminderEditorView: View {
                 }
             }
             DatePicker(selection: $start) {
-                Text(frequency == .once ? "Date & time" : "Starts")
+                Text(frequency == .once ? "When" : "Starts")
+            }
+            if frequency == .once {
+                Menu {
+                    ForEach(QuickTime.allCases) { quick in
+                        Button(quick.title) { start = quick.date() }
+                    }
+                } label: {
+                    Label("Quick times", systemImage: "clock.arrow.circlepath")
+                }
             }
 
             if frequency != .once {
@@ -213,6 +187,14 @@ struct ReminderEditorView: View {
 
             if frequency == .weekly {
                 WeekdayPicker(selection: $weekdays, fallback: Calendar.current.component(.weekday, from: start))
+            }
+
+            if frequency == .hourly {
+                Toggle("Only during the day", isOn: $limitHours)
+                if limitHours {
+                    DatePicker("From", selection: $activeFrom, displayedComponents: .hourAndMinute)
+                    DatePicker("Until", selection: $activeTo, displayedComponents: .hourAndMinute)
+                }
             }
 
             if frequency != .once {
@@ -233,11 +215,15 @@ struct ReminderEditorView: View {
                 }
             }
         } header: {
-            Text("Schedule")
+            Text("When")
         } footer: {
             let schedule = draftSchedule
             VStack(alignment: .leading, spacing: 4) {
                 Text(schedule.summary())
+                if frequency == .hourly, limitHours, Self.minutes(activeTo) < Self.minutes(activeFrom) {
+                    Text("\"Until\" is earlier than \"From\", so only the From time is used.")
+                        .foregroundStyle(.orange)
+                }
                 ForEach(schedule.validationIssues(), id: \.self) { issue in
                     Text(issue).foregroundStyle(.orange)
                 }
@@ -258,8 +244,22 @@ struct ReminderEditorView: View {
             }
             .pickerStyle(.inline)
             .labelsHidden()
+
+            if method == .relay {
+                Button {
+                    isEditingNumber = true
+                } label: {
+                    if let me {
+                        LabeledContent("Texts go to", value: me.displayHandle)
+                    } else {
+                        Label("Add the number to text", systemImage: "exclamationmark.circle.fill")
+                            .foregroundStyle(.orange)
+                    }
+                }
+                .foregroundStyle(Color.primary)
+            }
         } header: {
-            Text("How it's sent")
+            Text("How")
         } footer: {
             VStack(alignment: .leading, spacing: 4) {
                 Text(method.explanation)
@@ -268,7 +268,7 @@ struct ReminderEditorView: View {
                         Text(heartbeat.isOnline() ? "Relay online on \(heartbeat.deviceName)." : "Relay last seen \(heartbeat.lastSeen.formatted(.relative(presentation: .named))) on \(heartbeat.deviceName).")
                             .foregroundStyle(heartbeat.isOnline() ? Color.green : Color.orange)
                     } else {
-                        Text("No relay Mac has checked in yet. Until one does, these will show as late on the Today screen with a Send from iPhone button.")
+                        Text("No Mac relay has checked in yet. Texts wait until one does, and show as late on the Today screen.")
                             .foregroundStyle(.orange)
                     }
                 }
@@ -279,13 +279,12 @@ struct ReminderEditorView: View {
     // MARK: Actions
 
     private var previewText: String {
-        let first = recipientIDs.first.flatMap { directory[$0] }
         let settings = repository.existingSettings()?.renderSettings() ?? RenderSettings()
         let schedule = draftSchedule
         let occurrence = schedule.upcoming(from: Self.startOfCurrentMinute(), count: 1).first ?? schedule.start
         return TemplateRenderer.render(
             template: message,
-            recipientName: first?.name ?? "Alex Rivera",
+            recipientName: me?.name ?? "",
             reminderTitle: resolvedTitle,
             occurrence: occurrence,
             timeZone: schedule.timeZone,
@@ -311,13 +310,12 @@ struct ReminderEditorView: View {
         guard !hasLoaded else { return }
         hasLoaded = true
         guard let reminder else {
-            method = repository.settings().defaultMethod
+            method = repository.existingSettings()?.defaultMethod ?? .relay
             start = Self.nextRoundHour()
             return
         }
         title = reminder.title
         message = reminder.messageTemplate
-        recipientIDs = reminder.recipientIDs
         method = reminder.method
         isActive = reminder.isActive
         let schedule = reminder.schedule
@@ -325,6 +323,15 @@ struct ReminderEditorView: View {
         start = schedule.start
         interval = schedule.normalizedInterval
         weekdays = Set(schedule.frequency == .weekly ? schedule.effectiveWeekdays : [])
+        if schedule.frequency == .hourly {
+            if let window = schedule.activeMinutes {
+                limitHours = true
+                activeFrom = Self.clock(window.lowerBound)
+                activeTo = Self.clock(window.upperBound)
+            } else {
+                limitHours = false
+            }
+        }
         switch schedule.end {
         case .never:
             endMode = .never
@@ -340,9 +347,9 @@ struct ReminderEditorView: View {
     private func save() {
         let schedule = draftSchedule
         let now = Self.startOfCurrentMinute()
+        let recipientIDs = me.map { [$0.id] } ?? reminder?.recipientIDs ?? []
         if let reminder {
             let timingChanged = reminder.schedule != schedule
-                || reminder.recipientIDs != recipientIDs
                 || reminder.method != method
                 || (!reminder.isActive && isActive)
             reminder.title = resolvedTitle
@@ -369,7 +376,7 @@ struct ReminderEditorView: View {
         }
         repository.save()
         appState.dataDidChange()
-        if method == .tapToSend {
+        if method == .notification {
             Task {
                 if await NotificationScheduler.authorizationStatus() == .notDetermined {
                     await NotificationScheduler.requestAuthorization()
@@ -398,6 +405,62 @@ struct ReminderEditorView: View {
         let calendar = Calendar.current
         let dayStart = calendar.startOfDay(for: date)
         return calendar.date(byAdding: DateComponents(day: 1, second: -1), to: dayStart) ?? date
+    }
+
+    /// Today at `minutes` after midnight.
+    static func clock(_ minutes: Int) -> Date {
+        let calendar = Calendar.current
+        let day = calendar.startOfDay(for: Date())
+        return calendar.date(bySettingHour: minutes / 60, minute: minutes % 60, second: 0, of: day) ?? day
+    }
+
+    /// Minutes after midnight for a time of day.
+    static func minutes(_ date: Date) -> Int {
+        let parts = Calendar.current.dateComponents([.hour, .minute], from: date)
+        return (parts.hour ?? 0) * 60 + (parts.minute ?? 0)
+    }
+}
+
+/// Shortcuts for one-time reminders.
+enum QuickTime: String, CaseIterable, Identifiable {
+    case tenMinutes, oneHour, thisEvening, tomorrowMorning, nextMonday
+
+    var id: String { rawValue }
+
+    var title: String {
+        switch self {
+        case .tenMinutes: return "In 10 minutes"
+        case .oneHour: return "In 1 hour"
+        case .thisEvening: return "This evening (6 PM)"
+        case .tomorrowMorning: return "Tomorrow morning (9 AM)"
+        case .nextMonday: return "Next Monday (9 AM)"
+        }
+    }
+
+    func date(now: Date = Date(), calendar: Calendar = .current) -> Date {
+        func minuteRounded(_ date: Date) -> Date {
+            let seconds = date.timeIntervalSinceReferenceDate
+            return Date(timeIntervalSinceReferenceDate: (seconds / 60).rounded(.up) * 60)
+        }
+        func at(_ hour: Int, daysFromToday days: Int) -> Date {
+            let day = calendar.date(byAdding: .day, value: days, to: calendar.startOfDay(for: now)) ?? now
+            return calendar.date(bySettingHour: hour, minute: 0, second: 0, of: day) ?? day
+        }
+        switch self {
+        case .tenMinutes:
+            return minuteRounded(now.addingTimeInterval(10 * 60))
+        case .oneHour:
+            return minuteRounded(now.addingTimeInterval(3_600))
+        case .thisEvening:
+            let evening = at(18, daysFromToday: 0)
+            return evening > now ? evening : at(18, daysFromToday: 1)
+        case .tomorrowMorning:
+            return at(9, daysFromToday: 1)
+        case .nextMonday:
+            let weekday = calendar.component(.weekday, from: now)
+            let days = (2 - weekday + 7) % 7
+            return at(9, daysFromToday: days == 0 ? 7 : days)
+        }
     }
 }
 

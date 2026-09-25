@@ -42,6 +42,91 @@ struct Repository {
         return try? context.fetch(descriptor).first
     }
 
+    // MARK: You
+
+    /// The phone number or email your reminder texts go to. Copies created on
+    /// two devices before they first synced collapse onto the oldest one.
+    func me() -> Recipient? {
+        let descriptor = FetchDescriptor<Recipient>(sortBy: [SortDescriptor(\.createdAt, order: .forward)])
+        let all = (try? context.fetch(descriptor)) ?? []
+        guard let first = all.first else { return nil }
+        if all.count > 1 {
+            for duplicate in all.dropFirst() {
+                for reminder in reminders() where reminder.recipientIDs.contains(duplicate.id) {
+                    reminder.recipientIDs = reminder.recipientIDs.map { $0 == duplicate.id ? first.id : $0 }
+                }
+                context.delete(duplicate)
+            }
+            save()
+        }
+        return first
+    }
+
+    /// Sets where texts go. Returns nil when `raw` isn't a phone number or email.
+    @discardableResult
+    func setMyHandle(_ raw: String, name: String = "Me") -> Recipient? {
+        let countryCode = existingSettings()?.defaultCountryCode ?? "1"
+        guard let handle = HandleNormalizer.normalize(raw, defaultCountryCode: countryCode) else { return nil }
+        let recipient: Recipient
+        if let existing = me() {
+            recipient = existing
+            recipient.rawHandle = raw
+            recipient.handle = handle
+            recipient.updatedAt = Date()
+        } else {
+            recipient = Recipient(name: name, rawHandle: raw, handle: handle)
+            context.insert(recipient)
+        }
+        // Text reminders created before a number was set start going to it now.
+        for reminder in reminders() where reminder.recipientIDs.isEmpty {
+            reminder.recipientIDs = [recipient.id]
+        }
+        save()
+        return recipient
+    }
+
+    /// A one-time reminder, e.g. from Siri or a SNOOZE reply. Texted when a
+    /// number is set and texts are the default; otherwise a notification.
+    @discardableResult
+    func addOneTimeReminder(
+        title: String,
+        message: String,
+        at date: Date,
+        method: DeliveryMethod? = nil,
+        isSnooze: Bool = false,
+        now: Date = Date()
+    ) -> Reminder {
+        let me = me()
+        let resolved = method ?? (me == nil ? .notification : (existingSettings()?.defaultMethod ?? .relay))
+        // Whole minutes, rounded up, so "in 10 minutes" is never early.
+        let start = Date(timeIntervalSinceReferenceDate: (date.timeIntervalSinceReferenceDate / 60).rounded(.up) * 60)
+        let reminder = Reminder(
+            title: title,
+            messageTemplate: message,
+            schedule: Schedule(frequency: .once, start: start, timeZoneIdentifier: TimeZone.current.identifier),
+            recipientIDs: me.map { [$0.id] } ?? [],
+            method: resolved
+        )
+        reminder.activeSince = now
+        if isSnooze { reminder.notes = Reminder.snoozeNote }
+        context.insert(reminder)
+        save()
+        return reminder
+    }
+
+    /// Removes snoozed copies a day after they went out, so the list stays tidy.
+    func pruneFinishedSnoozes(now: Date = Date()) {
+        let note = Reminder.snoozeNote
+        let descriptor = FetchDescriptor<Reminder>(predicate: #Predicate { $0.notes == note })
+        guard let snoozes = try? context.fetch(descriptor) else { return }
+        var removed = false
+        for reminder in snoozes where reminder.schedule.start < now.addingTimeInterval(-86_400) {
+            context.delete(reminder)
+            removed = true
+        }
+        if removed { save() }
+    }
+
     // MARK: Fetching
 
     func reminders() -> [Reminder] {

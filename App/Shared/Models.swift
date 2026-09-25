@@ -11,7 +11,8 @@ import ReminderCore
 // agree on these definitions. In production CloudKit you can add properties but
 // never rename or remove them.
 
-/// Someone who receives reminders.
+/// Where reminder texts go. In practice there is one: you. The model allows more
+/// so a reminder could also go to someone else later.
 @Model
 final class Recipient {
     var id: UUID = UUID()
@@ -77,7 +78,7 @@ final class Reminder {
     var scheduleJSON: String = ""
     /// Comma-separated recipient UUIDs.
     var recipientIDsRaw: String = ""
-    var methodRaw: String = DeliveryMethod.tapToSend.rawValue
+    var methodRaw: String = DeliveryMethod.relay.rawValue
     var isActive: Bool = true
     /// Occurrences before this are never sent. Reset when the schedule changes or
     /// the reminder is switched back on.
@@ -114,7 +115,7 @@ final class Reminder {
     }
 
     var method: DeliveryMethod {
-        get { DeliveryMethod(rawValue: methodRaw) ?? .tapToSend }
+        get { DeliveryMethod(rawValue: methodRaw) ?? .relay }
         set { methodRaw = newValue.rawValue }
     }
 
@@ -122,6 +123,11 @@ final class Reminder {
         let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? "Untitled reminder" : trimmed
     }
+
+    /// `notes` value marking a one-time copy created by a SNOOZE reply.
+    static let snoozeNote = "snooze"
+
+    var isSnooze: Bool { notes == Self.snoozeNote }
 
     var plannerValue: PlannerReminder {
         PlannerReminder(
@@ -244,13 +250,17 @@ final class SharedSettings {
     var senderName: String = ""
     /// Calling code for numbers typed without one.
     var defaultCountryCode: String = "1"
-    var defaultMethodRaw: String = DeliveryMethod.tapToSend.rawValue
+    var defaultMethodRaw: String = DeliveryMethod.relay.rawValue
     var appendOptOutFooter: Bool = false
-    var optOutFooterText: String = "Reply STOP to opt out."
-    /// Relay: mark people opted out when they reply STOP (needs Full Disk Access).
+    var optOutFooterText: String = "Reply STOP to pause these texts."
+    /// Relay: replying STOP pauses all texts and START resumes (needs Full Disk Access).
     var honorOptOutReplies: Bool = true
     var sendOptOutConfirmation: Bool = true
-    var optOutConfirmationText: String = "You're unsubscribed and won't get more reminders from this number. Reply START to resubscribe."
+    var optOutConfirmationText: String = "BlueNudge texts are paused. Reply START to turn them back on."
+    /// Relay: replying SNOOZE (or "SNOOZE 20", "LATER") sends the last reminder again.
+    var honorSnoozeReplies: Bool = true
+    /// Relay: answer replies (snooze, pause, resume) with a short confirmation text.
+    var confirmReplies: Bool = true
     /// Relay: how late a reminder may still go out, e.g. after the Mac wakes up.
     var graceMinutes: Int = 60
     /// Relay: cap per rolling hour to keep the Apple ID in good standing.
@@ -266,7 +276,7 @@ final class SharedSettings {
     }
 
     var defaultMethod: DeliveryMethod {
-        get { DeliveryMethod(rawValue: defaultMethodRaw) ?? .tapToSend }
+        get { DeliveryMethod(rawValue: defaultMethodRaw) ?? .relay }
         set { defaultMethodRaw = newValue.rawValue }
     }
 

@@ -97,7 +97,7 @@ final class RepositoryTests: XCTestCase {
         let planned = try XCTUnwrap(plan.toSend.first)
         XCTAssertEqual(plan.toSend.count, 1)
         XCTAssertEqual(planned.text, "Hi Ana")
-        XCTAssertTrue(repository.plan(method: .tapToSend, lookback: 3_600, grace: 3_600).toSend.isEmpty)
+        XCTAssertTrue(repository.plan(method: .notification, lookback: 3_600, grace: 3_600).toSend.isEmpty)
 
         repository.record(planned, status: .sent, channel: .relay, deviceName: "Test Mac")
         repository.save()
@@ -170,7 +170,7 @@ final class RepositoryTests: XCTestCase {
             messageTemplate: "Standup",
             schedule: Schedule(frequency: .daily, start: Date()),
             recipientIDs: [ana.id, ben.id],
-            method: .tapToSend
+            method: .notification
         )
         repository.context.insert(reminder)
         repository.save()
@@ -192,10 +192,10 @@ final class RepositoryTests: XCTestCase {
             end: .after(6),
             timeZoneIdentifier: "America/Chicago"
         )
-        let reminder = Reminder(title: "T", messageTemplate: "M", schedule: schedule, recipientIDs: ids, method: .tapToSend)
+        let reminder = Reminder(title: "T", messageTemplate: "M", schedule: schedule, recipientIDs: ids, method: .notification)
         XCTAssertEqual(reminder.schedule, schedule)
         XCTAssertEqual(reminder.recipientIDs, ids)
-        XCTAssertEqual(reminder.method, .tapToSend)
+        XCTAssertEqual(reminder.method, .notification)
 
         reminder.recipientIDs = [ids[1]]
         XCTAssertEqual(reminder.recipientIDsRaw, ids[1].uuidString)
@@ -208,18 +208,17 @@ final class RepositoryTests: XCTestCase {
         DemoData.seed(into: repository.context)
         let now = Date()
 
-        XCTAssertEqual(repository.recipients().count, 8)
-        XCTAssertEqual(repository.reminders().count, 7)
+        let me = try XCTUnwrap(repository.me())
+        XCTAssertEqual(repository.recipients().count, 1)
+        XCTAssertEqual(repository.reminders().count, 8)
+        XCTAssertTrue(repository.reminders().allSatisfy { $0.recipientIDs == [me.id] })
         XCTAssertNotNil(repository.existingSettings())
         XCTAssertEqual(repository.heartbeats().count, 1)
         XCTAssertNotNil(repository.reminders().first { $0.title == DemoData.editorReminderTitle })
+        XCTAssertTrue(repository.reminders().contains { $0.method == .notification })
 
-        // The send queue shows the two pickup messages and nothing stale.
-        let queue = repository.plan(method: .tapToSend, lookback: 48 * 3_600, grace: 48 * 3_600, now: now).toSend
-        XCTAssertEqual(queue.map(\.reminderTitle), ["Order ready for pickup", "Order ready for pickup"])
-
-        // Every automatic reminder due in the last day already has a record,
-        // so Today shows no "late" items.
+        // Every text due in the last day already has a record, so Today shows
+        // nothing late.
         let relay = repository.plan(method: .relay, lookback: 86_400, grace: 86_400, now: now)
         XCTAssertTrue(relay.toSend.isEmpty)
         XCTAssertTrue(relay.missed.isEmpty)

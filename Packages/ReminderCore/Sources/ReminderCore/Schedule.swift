@@ -52,6 +52,9 @@ public struct Schedule: Equatable, Hashable, Sendable {
     /// Occurrences are computed in this zone so they keep their wall-clock time
     /// across DST changes and when the relay Mac sits in another zone.
     public var timeZoneIdentifier: String
+    /// For `.hourly`: only fire between these times of day, in minutes after
+    /// midnight (inclusive), e.g. 540...1260 for 9:00 AM–9:00 PM. Nil = all day.
+    public var activeMinutes: ClosedRange<Int>?
 
     public init(
         frequency: Frequency = .once,
@@ -59,7 +62,8 @@ public struct Schedule: Equatable, Hashable, Sendable {
         interval: Int = 1,
         weekdays: [Int] = [],
         end: End = .never,
-        timeZoneIdentifier: String = TimeZone.current.identifier
+        timeZoneIdentifier: String = TimeZone.current.identifier,
+        activeMinutes: ClosedRange<Int>? = nil
     ) {
         self.frequency = frequency
         self.start = start
@@ -67,6 +71,15 @@ public struct Schedule: Equatable, Hashable, Sendable {
         self.weekdays = weekdays
         self.end = end
         self.timeZoneIdentifier = timeZoneIdentifier
+        self.activeMinutes = activeMinutes
+    }
+
+    /// The daily window that actually applies (only hourly schedules use one).
+    var effectiveActiveMinutes: ClosedRange<Int>? {
+        guard frequency == .hourly, let window = activeMinutes else { return nil }
+        let lower = min(max(window.lowerBound, 0), 1_439)
+        let upper = min(max(window.upperBound, 0), 1_439)
+        return lower <= upper ? lower...upper : nil
     }
 
     public var timeZone: TimeZone {
@@ -189,6 +202,8 @@ struct OccurrenceIterator: IteratorProtocol {
     private var steps = 0
     private static let maxSteps = 250_000
 
+    private let window: ClosedRange<Int>?
+
     // Weekly state.
     private var weekdays: [Int] = []
     private var weekStart = Date()
@@ -203,6 +218,7 @@ struct OccurrenceIterator: IteratorProtocol {
         self.calendar = schedule.calendar
         self.interval = schedule.normalizedInterval
         self.start = schedule.start
+        self.window = schedule.effectiveActiveMinutes
 
         let parts = calendar.dateComponents([.hour, .minute, .second], from: start)
         hour = parts.hour ?? 0
@@ -241,6 +257,9 @@ struct OccurrenceIterator: IteratorProtocol {
                 return nil
             }
             index += 1
+            if let window, !window.contains(minuteOfDay(candidate)) {
+                continue
+            }
             return candidate
         }
         return nil
@@ -280,6 +299,11 @@ struct OccurrenceIterator: IteratorProtocol {
             if block == 0, date < start { continue }
             return date
         }
+    }
+
+    private func minuteOfDay(_ date: Date) -> Int {
+        let parts = calendar.dateComponents([.hour, .minute], from: date)
+        return (parts.hour ?? 0) * 60 + (parts.minute ?? 0)
     }
 
     private func weeklyDate(block: Int, weekday: Int) -> Date? {
@@ -340,7 +364,13 @@ extension Schedule {
             return "Once on \(date) at \(time)"
         case .hourly:
             text = n == 1 ? "Every hour" : "Every \(n) hours"
-            text += " from \(time)"
+            if let window = effectiveActiveMinutes {
+                let from = Self.format(Self.clock(window.lowerBound, near: start, calendar: calendar), template: "jmm", locale: locale, timeZone: timeZone)
+                let to = Self.format(Self.clock(window.upperBound, near: start, calendar: calendar), template: "jmm", locale: locale, timeZone: timeZone)
+                text += ", \(from)–\(to)"
+            } else {
+                text += " from \(time)"
+            }
         case .daily:
             text = n == 1 ? "Every day" : "Every \(n) days"
             text += " at \(time)"
@@ -370,6 +400,12 @@ extension Schedule {
             text += count == 1 ? ", 1 time" : ", \(count) times"
         }
         return text
+    }
+
+    /// A date on `reference`'s day at `minutes` after midnight, for labels.
+    static func clock(_ minutes: Int, near reference: Date, calendar: Calendar) -> Date {
+        let day = calendar.startOfDay(for: reference)
+        return calendar.date(bySettingHour: minutes / 60, minute: minutes % 60, second: 0, of: day) ?? day
     }
 
     static func format(_ date: Date, template: String, locale: Locale, timeZone: TimeZone) -> String {
@@ -424,7 +460,7 @@ extension Schedule.End: Codable {
 
 extension Schedule: Codable {
     private enum CodingKeys: String, CodingKey {
-        case frequency, start, interval, weekdays, end, timeZoneIdentifier
+        case frequency, start, interval, weekdays, end, timeZoneIdentifier, activeFrom, activeTo
     }
 
     /// Tolerant decoding: anything missing falls back to a default, so records
@@ -439,6 +475,13 @@ extension Schedule: Codable {
         end = (try? container.decodeIfPresent(End.self, forKey: .end)) ?? .never
         timeZoneIdentifier = try container.decodeIfPresent(String.self, forKey: .timeZoneIdentifier)
             ?? TimeZone.current.identifier
+        if let from = try container.decodeIfPresent(Int.self, forKey: .activeFrom),
+           let to = try container.decodeIfPresent(Int.self, forKey: .activeTo),
+           from <= to {
+            activeMinutes = from...to
+        } else {
+            activeMinutes = nil
+        }
     }
 
     public func encode(to encoder: Encoder) throws {
@@ -449,6 +492,10 @@ extension Schedule: Codable {
         try container.encode(weekdays, forKey: .weekdays)
         try container.encode(end, forKey: .end)
         try container.encode(timeZoneIdentifier, forKey: .timeZoneIdentifier)
+        if let activeMinutes {
+            try container.encode(activeMinutes.lowerBound, forKey: .activeFrom)
+            try container.encode(activeMinutes.upperBound, forKey: .activeTo)
+        }
     }
 }
 

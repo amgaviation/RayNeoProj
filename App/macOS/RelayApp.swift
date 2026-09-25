@@ -73,8 +73,9 @@ struct MenuBarContent: View {
             Divider()
 
             VStack(alignment: .leading, spacing: 4) {
+                StatLine(label: "Texts go to", value: engine.textsGoTo ?? "Not set yet")
                 StatLine(label: "Sent in last 24 h", value: "\(engine.sentLast24h)")
-                StatLine(label: "Automatic reminders", value: "\(engine.automaticRemindersSeen)")
+                StatLine(label: "Text reminders", value: "\(engine.automaticRemindersSeen)")
                 if let next = engine.nextDue {
                     StatLine(label: "Next", value: "\(next.title) · \(next.date.formatted(date: .abbreviated, time: .shortened))")
                 }
