@@ -39,6 +39,8 @@ struct TextMeReminderIntent: AppIntent {
         AppState.shared.dataDidChange()
         let when = WhenPhrase.describe(reminder.schedule.start)
         switch reminder.method {
+        case .sms where !TextingAccount.shared.isReady:
+            return .result(dialog: "Saved. It's due \(when), but texts aren't set up yet. Open BlueNudge to finish.")
         case .sms, .relay:
             return .result(dialog: "Okay, I'll text you \(when).")
         case .alarm:

@@ -101,7 +101,9 @@ with the app and its subscriptions in App Store Connect.
 5. **Phone sign-in.** In the dashboard, enable the Phone provider under
    Authentication, then add a Send SMS hook (Authentication › Hooks) of type HTTPS
    pointing at `https://<project-ref>.supabase.co/functions/v1/send-sms-hook`.
-   Generate its secret and store it as `SEND_SMS_HOOK_SECRETS`.
+   Generate its secret and store it as `SEND_SMS_HOOK_SECRETS`. For App Review,
+   add a test phone number with a fixed code in the Phone provider's test OTP
+   setting (Auth sends no SMS for it) and give both to the reviewer.
 
 6. **Replies.** At the SMS provider, set the number's (or messaging
    service/profile's) incoming-message webhook to the `SMS_INBOUND_URL` above,
