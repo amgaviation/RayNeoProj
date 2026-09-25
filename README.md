@@ -1,66 +1,78 @@
 # BlueNudge
 
-An iPhone app that sends scheduled reminders to people over iMessage, at no
-per-message cost. Messages go out through Apple's Messages app from your own
-Apple Account or phone number, so there is no SMS gateway, no server and no
-monthly fee.
+Reminders that arrive as texts. You set a reminder on your iPhone and it lands
+in Messages as a real text at the right time: hard to miss, easy to find
+later, and you can reply **SNOOZE** or **STOP**. There is no per-text cost:
+the texts go out through the Messages app on a Mac you own, so there's no SMS
+gateway, no server and no monthly fee.
 
 | Part | What it does |
 | --- | --- |
-| **BlueNudge** (iPhone/iPad) | Manage people and reminders, see what's due, send with one tap, review the delivery log. |
-| **BlueNudge Relay** (Mac menu bar) | Optional. Sends automatic reminders unattended through Messages, confirms delivery, retries as SMS, honors STOP replies. |
-| **ReminderCore** (Swift package) | Scheduling, message templates, phone-number handling and opt-out detection shared by both apps. Tested on Linux and macOS. |
+| **BlueNudge** (iPhone/iPad) | Create reminders, see what's next and what was sent, set the number texts go to. Works on its own with notifications. |
+| **BlueNudge Relay** (Mac menu bar) | Texts you each reminder through Messages when it's due, confirms delivery and reads your replies (SNOOZE, STOP, START). |
+| **ReminderCore** (Swift package) | Scheduling, message templates, phone-number handling and reply parsing shared by both apps. Tested on Linux and macOS. |
 
-## Why a Mac relay?
+## Screenshots
 
-Apple does not let iPhone apps send iMessages by themselves: the system compose
-sheet always needs a tap. The only way to send iMessages unattended without a
-paid gateway is a Mac signed in to Messages, driven through Messages' public
-AppleScript interface. So there are two delivery methods, chosen per reminder:
+The images in [`docs/screenshots`](docs/screenshots) come from the apps
+running with sample data (see [Screenshots](#screenshots-1) below).
 
-- **Automatic (Mac relay):** fully unattended. Needs any Mac on macOS 14+ that stays on.
-- **Tap to send (iPhone):** the iPhone alerts you at the scheduled time and the
-  message is one tap away. No Mac needed. A Shortcuts automation can also send
-  these without a tap at fixed times of day (best-effort, see below).
+| Today | Reminders | Editor | Settings |
+| --- | --- | --- | --- |
+| ![Today](docs/screenshots/iphone-today.png) | ![Reminders](docs/screenshots/iphone-reminders.png) | ![Editor](docs/screenshots/iphone-editor.png) | ![Settings](docs/screenshots/iphone-settings.png) |
+
+## Why a Mac?
+
+Apple doesn't let iPhone apps send texts by themselves: the compose sheet
+always needs a tap. The only way to send iMessages unattended without a paid
+gateway is a Mac signed in to Messages, driven through Messages' AppleScript
+interface. So each reminder is either:
+
+- **Text me:** sent by BlueNudge Relay on your Mac. Needs any Mac on macOS 14+ that stays on.
+- **Notification only:** a regular notification on the iPhone, with a Snooze action. No Mac needed.
 
 ```
-iPhone app ──(your private iCloud / CloudKit)── Mac relay ──AppleScript──▶ Messages ──▶ iMessage / SMS
-   │                                                 │
-   └── tap-to-send via the Messages compose sheet    └── reads chat.db (optional) for delivery + STOP replies
+iPhone app ──(your private iCloud / CloudKit)── Mac relay ──AppleScript──▶ Messages ──iMessage──▶ your iPhone
+                                                     │
+                                                     └── reads chat.db (Full Disk Access) for delivery and your replies
 ```
 
-Both apps share one SwiftData store synced through the CloudKit private
-database of your Apple Account. Every message is identified by
-`reminder + person + scheduled time`; whichever device handles it writes a
-delivery record first, which is what prevents duplicates across devices.
+### Why the Mac needs a second Apple Account
+
+A text sent from your own Apple Account to yourself shows up as one *you*
+sent, so your iPhone doesn't alert you. The Mac's Messages app therefore signs
+in to a second Apple Account (free to create) and texts you from there; the
+texts then arrive like any other incoming message. The Mac's iCloud stays on
+your own account so the relay can see your reminders.
 
 ## Features
 
-- One-time or repeating reminders: hourly, daily, weekly (chosen weekdays), monthly, yearly, every N units, with an end date or a count.
+- Once, hourly, daily, weekly (chosen weekdays), monthly, yearly, every N units, with an end date or a count.
+- Quiet hours for hourly reminders, e.g. "every 2 hours, 9 AM–9 PM".
+- Quick times for one-off reminders: in 10 minutes, in an hour, this evening, tomorrow morning, next Monday.
+- Reply to a text: **SNOOZE** (10 min), **SNOOZE 30**, **2H**, **LATER**, "remind me in an hour" sends it again; **STOP** pauses every text until **START**; **DONE** is noted. Only replies from your own number count, and each is confirmed with a short text (can be turned off).
+- Siri and Shortcuts: "Text me a reminder with BlueNudge" adds a one-time reminder without opening the app.
+- Today screen: what's next, what was texted, and anything late because the Mac was off or asleep.
+- Activity log from every device (sent, delivered, failed, missed, paused), search and CSV export.
 - Wall-clock times survive daylight-saving changes; each reminder keeps its own time zone.
-- Personalised messages: `{first_name}`, `{name}`, `{last_name}`, `{title}`, `{date}`, `{time}`, `{weekday}`, `{sender}`.
-- Each person gets a private message, never a group chat.
-- Import people from Contacts (no Contacts permission needed), phone numbers normalized to E.164.
-- Today screen: messages ready to send, relay status, late automatic reminders with a "Send from iPhone" fallback, upcoming schedule.
-- Activity log from every device with status (sent, delivered, failed, missed, skipped, opted out), search, and CSV export.
-- Relay: throttling (per-hour cap, gap between messages), grace window for late sends, missed-reminder logging, delivery confirmation, SMS fallback, STOP/START handling with an optional confirmation, heartbeat and automatic single-relay election, keep-awake and open-at-login.
-- iCloud sync status on both devices: last sync time, or the reason it failed (not signed in, storage full, container not set up).
-- Shortcuts actions: *Get Due BlueNudge Messages*, *Mark BlueNudge Message Sent*, *Open BlueNudge Send Queue*.
+- `{time}`, `{date}`, `{weekday}` and `{title}` placeholders in the text.
+- Relay: grace window for late texts, missed-text logging, delivery confirmation, per-hour cap, heartbeat and automatic single-relay election if you run it on two Macs, keep-awake and open-at-login.
+- iCloud sync status on both devices: last sync, or why it failed.
 
 ## What it costs
 
 | Item | Cost |
 | --- | --- |
-| Per message | $0 (iMessage; SMS fallback uses your iPhone's plan) |
+| Per text | $0 (iMessage between your two Apple Accounts) |
 | Servers / sync | $0 (your private iCloud database) |
-| Apple Developer Program | $99/year, needed for iCloud sync, TestFlight and the App Store, and to keep the app installed longer than 7 days |
-| Mac for automatic sending | A Mac you already own, or any Mac that can stay on |
+| Apple Developer Program | $99/year, needed for iCloud sync between iPhone and Mac, TestFlight and the App Store, and to keep the app installed longer than 7 days |
+| Mac | One you already own, that can stay on |
 
 ## Requirements
 
 - Xcode 26 or later on a Mac.
 - iPhone or iPad on iOS 17 or later.
-- For the relay: a Mac on macOS 14 or later, signed in to Messages and to the same Apple Account (iCloud) as the iPhone.
+- For texts: a Mac on macOS 14 or later, a second Apple Account for its Messages app, and iCloud on the Mac signed in to the same Apple Account as the iPhone.
 
 ## Setup
 
@@ -71,32 +83,25 @@ delivery record first, which is what prevents duplicates across devices.
 3. Both targets use the iCloud container `iCloud.com.amgaviationgroup.bluenudge`. If Xcode reports it missing, tick it in the iCloud section so Xcode creates it. The same container must be ticked in both targets.
 4. To use your own bundle IDs, see [Changing identifiers](#changing-identifiers).
 
-Without a paid developer account, remove the iCloud and Push Notifications capabilities from the iPhone target: the app then runs on-device only (tap-to-send works; the relay can't see its data).
+Without a paid developer account, remove the iCloud and Push Notifications
+capabilities from the iPhone target: the app then runs on-device only with
+notification reminders (the relay can't see its data).
 
 ### 2. iPhone app
 
-Run the **BlueNudge** scheme on your iPhone. The first launch asks whether you
-have a Mac for automatic sending (this sets the default for new reminders) and
-for notification permission.
+Run the **BlueNudge** scheme on your iPhone. The first launch asks whether
+there's a Mac to send texts and, if so, the number or iMessage email to text.
 
-### 3. Mac relay (for automatic sending)
+### 3. Mac relay
 
-1. Open Messages on the Mac and sign in with the account or number reminders should come from.
-2. Run the **BlueNudgeRelay** scheme. It lives in the menu bar; the dashboard opens on first launch.
-3. Click **Grant access** and allow it to control Messages.
-4. Optional: add *BlueNudge Relay* to *System Settings › Privacy & Security › Full Disk Access* and click **Recheck**. This enables delivery confirmation, SMS fallback after a failed iMessage and STOP handling.
-5. Turn on **Open at login** and **Keep this Mac awake**. A closed laptop lid still sleeps the Mac.
-6. For SMS fallback (Android recipients): on the iPhone, *Settings › Apps › Messages › Text Message Forwarding*, allow the Mac, then enable *Fall back to SMS* in BlueNudge settings.
-
-Use **Test** in the dashboard to send one message right away.
-
-### 4. Optional: send tap-to-send reminders from Shortcuts
-
-In Shortcuts create a *Time of Day* automation set to *Run Immediately*:
-*Get Due BlueNudge Messages* → *Repeat with Each* → *Send Message* (Message:
-Repeat Item › Text, Recipients: Repeat Item › Handle, Show When Run off) →
-*Mark BlueNudge Message Sent* (Repeat Item). iOS sometimes skips automations
-while the phone is locked, so treat this as best-effort.
+1. Create a second Apple Account at [account.apple.com](https://account.apple.com) if you don't have one.
+2. On the Mac, open *Messages › Settings › iMessage* and sign in with that second account. Leave *System Settings › Apple Account / iCloud* on your own account.
+3. Run the **BlueNudgeRelay** scheme. It lives in the menu bar; the dashboard opens on first launch.
+4. Click **Grant access** and allow it to control Messages.
+5. Add *BlueNudge Relay* to *System Settings › Privacy & Security › Full Disk Access* and click **Recheck**. This turns on replies (SNOOZE, STOP, START) and delivery confirmation.
+6. Turn on **Open at login** and **Keep this Mac awake**. A closed laptop lid still sleeps the Mac.
+7. On the iPhone, save the second account's email as a contact (e.g. "BlueNudge"). With *Screen Unknown Senders* on, texts from unknown senders arrive without an alert.
+8. Use **Test** in the relay dashboard to send one text and check your iPhone alerts you.
 
 ### Shipping through TestFlight or the App Store
 
@@ -107,13 +112,13 @@ while the phone is locked, so treat this as best-effort.
 ## Project layout
 
 ```
-App/Shared/        SwiftData models, iCloud store, repository (both apps)
-App/iOS/           iPhone app: views, notifications, send queue, Shortcuts intents
+App/Shared/        SwiftData models, iCloud store, repository, reply handling (both apps)
+App/iOS/           iPhone app: views, notifications, Siri/Shortcuts intent
 App/macOS/         Mac relay: engine, Messages sender, chat.db reader, menu bar + dashboard
 Packages/ReminderCore/  Platform-neutral logic + unit tests
-Tests/BlueNudgeTests/   Data-layer and relay tests (macOS)
+Tests/BlueNudgeTests/   Data-layer, reply and relay tests (macOS)
 project.yml        XcodeGen spec (BlueNudge.xcodeproj is generated from it)
-scripts/make_icons.py  Draws the app icons
+scripts/           App icons and screenshot capture
 ```
 
 ## Development
@@ -122,8 +127,8 @@ scripts/make_icons.py  Draws the app icons
 # Core logic tests (macOS or Linux)
 swift test --package-path Packages/ReminderCore
 
-# App tests on a Mac: SwiftData queries, Messages database queries and the
-# relay's AppleScript (compiled against Messages, nothing is sent)
+# App tests on a Mac: SwiftData queries, reply handling, Messages database
+# queries and the relay's AppleScript (compiled against Messages, nothing is sent)
 xcodebuild test -project BlueNudge.xcodeproj -scheme BlueNudgeTests -destination 'platform=macOS'
 
 # After editing project.yml
@@ -132,6 +137,15 @@ brew install xcodegen && xcodegen generate
 
 CI (`.github/workflows/ci.yml`) runs the core tests on Linux, then on macOS,
 builds both apps with signing disabled and runs the app tests.
+
+### Screenshots
+
+Debug builds have a demo mode with sample data that never touches real data:
+launch the iPhone app with `-BlueNudgeDemo YES -BlueNudgeScreen today`
+(or `reminders`, `editor`, `activity`, `settings`, `onboarding`). The
+*Screenshots* workflow captures every screen in the iOS Simulator plus the Mac
+relay's windows and commits them to `docs/screenshots`; run it from the Actions
+tab or add the `screenshots` label to a pull request.
 
 ### Changing identifiers
 
@@ -147,14 +161,14 @@ every property has a default, there are no unique constraints and no
 relationships (links are stored as UUIDs). Once the schema is deployed to
 Production, properties can be added but never renamed or removed.
 
-## Using it responsibly
+## Limits
 
-- Only message people who agreed to get reminders. In the US, automated texts
-  (iMessage included) fall under the TCPA: informational reminders need the
-  recipient's prior consent, and opt-outs must be honored promptly. Keep
-  reminders free of marketing unless you have written consent.
-- STOP handling needs the relay with Full Disk Access. Opt-outs sent any other
-  way (a call, an email) should be set by hand on the person.
-- Apple can restrict Apple Accounts that send large volumes of unsolicited
-  messages. The relay's hourly cap and message gap are there to keep sending
-  patterns normal; keep volumes modest.
+- Texts only go out while the Mac is on, awake and online. Late texts are sent
+  within the grace window you set (default 60 minutes); later ones are logged
+  as missed.
+- iCloud's terms cover personal use. This design is for texting yourself from
+  your own Mac; a service that texts other people from one central account is
+  a different product with different rules.
+- Apple can restrict Apple Accounts that send large volumes of automated
+  messages. The relay caps texts per hour; keep hourly reminders to waking
+  hours.
