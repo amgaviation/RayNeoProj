@@ -34,6 +34,14 @@ final class SyncMonitor: ObservableObject {
     /// Call once at launch so no early events are missed.
     func start() {}
 
+    /// Demo mode: look like a healthy, recently synced setup.
+    func applyDemoState() {
+        hasActivity = true
+        lastImport = Date().addingTimeInterval(-95)
+        lastExport = Date().addingTimeInterval(-60)
+        lastError = nil
+    }
+
     private func record(_ event: NSPersistentCloudKitContainer.Event) {
         hasActivity = true
         guard let end = event.endDate else { return }  // still running

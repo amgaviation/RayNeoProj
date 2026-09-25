@@ -21,7 +21,11 @@ struct DashboardView: View {
         }
     }
 
-    @State private var pane: Pane? = .setup
+    @State private var pane: Pane?
+
+    init(initialPane: Pane = .setup) {
+        _pane = State(initialValue: initialPane)
+    }
 
     var body: some View {
         NavigationSplitView {

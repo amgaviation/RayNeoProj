@@ -1,0 +1,87 @@
+name: Screenshots
+
+# Runs the apps with sample data (demo mode) and captures the main screens:
+# the iPhone app in the iOS Simulator and the Mac relay's windows. The images
+# are committed to docs/screenshots on the branch and attached as an artifact.
+#
+# Start it from the Actions tab (Run workflow), or add the "screenshots" label
+# to a pull request.
+
+on:
+  workflow_dispatch:
+  pull_request:
+    types: [labeled]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: screenshots-${{ github.head_ref || github.ref_name }}
+  cancel-in-progress: true
+
+jobs:
+  capture:
+    if: github.event_name == 'workflow_dispatch' || github.event.label.name == 'screenshots'
+    runs-on: macos-26
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+
+      - name: Build iPhone app for the Simulator
+        run: >
+          xcodebuild build -quiet
+          -project BlueNudge.xcodeproj
+          -scheme BlueNudge
+          -configuration Debug
+          -destination 'generic/platform=iOS Simulator'
+          -derivedDataPath build/DerivedData
+          CODE_SIGNING_ALLOWED=NO
+
+      - name: Build Mac relay
+        run: >
+          xcodebuild build -quiet
+          -project BlueNudge.xcodeproj
+          -scheme BlueNudgeRelay
+          -configuration Debug
+          -destination 'platform=macOS,arch=arm64'
+          -derivedDataPath build/DerivedData
+          CODE_SIGNING_ALLOWED=NO
+
+      - name: Capture iPhone screens
+        run: scripts/capture_screenshots.sh build/screenshots
+
+      - name: Capture Mac relay windows
+        timeout-minutes: 5
+        run: >
+          "build/DerivedData/Build/Products/Debug/BlueNudge Relay.app/Contents/MacOS/BlueNudge Relay"
+          -BlueNudgeDemo YES -BlueNudgeSnapshot "$PWD/build/screenshots"
+
+      - name: Shrink for the repository
+        run: |
+          mkdir -p docs/screenshots
+          for file in build/screenshots/*.png; do
+            sips -Z 1400 "$file" --out "docs/screenshots/$(basename "$file")" >/dev/null
+          done
+          ls -l docs/screenshots
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: build/screenshots/*.png
+
+      - name: Commit screenshots
+        env:
+          # Via env, not inline, so a branch name can't inject shell code.
+          BRANCH: ${{ github.head_ref || github.ref_name }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/screenshots
+          if git diff --cached --quiet; then
+            echo "Screenshots unchanged."
+          else
+            git commit -m "docs: refresh app screenshots"
+            git push origin "HEAD:$BRANCH"
+          fi

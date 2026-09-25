@@ -203,6 +203,29 @@ final class RepositoryTests: XCTestCase {
         XCTAssertEqual(reminder.schedule.frequency, .once)
     }
 
+    func testDemoDataIsConsistent() throws {
+        let repository = try makeRepository()
+        DemoData.seed(into: repository.context)
+        let now = Date()
+
+        XCTAssertEqual(repository.recipients().count, 8)
+        XCTAssertEqual(repository.reminders().count, 7)
+        XCTAssertNotNil(repository.existingSettings())
+        XCTAssertEqual(repository.heartbeats().count, 1)
+        XCTAssertNotNil(repository.reminders().first { $0.title == DemoData.editorReminderTitle })
+
+        // The send queue shows the two pickup messages and nothing stale.
+        let queue = repository.plan(method: .tapToSend, lookback: 48 * 3_600, grace: 48 * 3_600, now: now).toSend
+        XCTAssertEqual(queue.map(\.reminderTitle), ["Order ready for pickup", "Order ready for pickup"])
+
+        // Every automatic reminder due in the last day already has a record,
+        // so Today shows no "late" items.
+        let relay = repository.plan(method: .relay, lookback: 86_400, grace: 86_400, now: now)
+        XCTAssertTrue(relay.toSend.isEmpty)
+        XCTAssertTrue(relay.missed.isEmpty)
+        XCTAssertFalse(repository.deliveries(since: now.addingTimeInterval(-7 * 86_400)).isEmpty)
+    }
+
     func testOptOutBookkeeping() {
         let person = Recipient(name: "Ana", rawHandle: "+15551234567", handle: "+15551234567")
         person.setOptedOut(true, source: "reply")

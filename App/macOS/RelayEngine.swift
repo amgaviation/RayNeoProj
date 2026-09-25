@@ -81,7 +81,8 @@ final class RelayEngine: ObservableObject {
     @Published private(set) var peopleSeen = 0
     @Published private(set) var iCloudAccount = "Checking…"
 
-    var sentLast24h: Int { prefs.recentSends.count }
+    var sentLast24h: Int { demoSentCount ?? prefs.recentSends.count }
+    private var demoSentCount: Int?
 
     static let tickInterval: TimeInterval = 30
     private static let heartbeatInterval: TimeInterval = 5 * 60
@@ -110,6 +111,7 @@ final class RelayEngine: ObservableObject {
     }
 
     func refreshPermissions(ask: Bool) async {
+        if DemoMode.isEnabled { return }
         automation = await MessagesSender.automationStatus(ask: ask)
         hasFullDiskAccess = ChatDatabase.open() != nil
     }
@@ -527,6 +529,31 @@ final class RelayEngine: ObservableObject {
         }
         repository.save()
         Task { await tick(forceHeartbeat: true) }
+    }
+
+    /// Demo mode: show a healthy relay with recent activity, without touching
+    /// Messages, permissions or the real store.
+    func applyDemoState() {
+        let repository = Repository(context: DataStore.shared.mainContext)
+        condition = .running
+        note = nil
+        lastCheck = Date().addingTimeInterval(-12)
+        automation = .granted
+        hasFullDiskAccess = true
+        iCloudAccount = "Signed in"
+        automaticRemindersSeen = repository.reminders().filter { $0.method == .relay && $0.isActive }.count
+        peopleSeen = repository.recipients().count
+        updateNextDue(repository: repository)
+        let sends = repository.deliveries(since: Date().addingTimeInterval(-86_400))
+            .filter { $0.channel == .relay && $0.status.countsAsSent }
+        demoSentCount = sends.count
+        events = sends.prefix(6).map { record in
+            Event(
+                date: record.sentAt ?? record.createdAt,
+                text: "Sent “\(record.reminderTitle)” to \(record.displayRecipient) via \(record.serviceUsed).",
+                isProblem: false
+            )
+        }
     }
 
     private func log(_ text: String, problem: Bool) {

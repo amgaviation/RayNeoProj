@@ -4,6 +4,8 @@ import SwiftData
 struct RootView: View {
     @ObservedObject private var appState = AppState.shared
     @Environment(\.scenePhase) private var scenePhase
+    @State private var demoEditorReminder: Reminder?
+    @State private var didApplyDemoScreen = false
 
     var body: some View {
         TabView(selection: $appState.selectedTab) {
@@ -29,6 +31,9 @@ struct RootView: View {
         .fullScreenCover(isPresented: $appState.isShowingOnboarding) {
             OnboardingView()
         }
+        .sheet(item: $demoEditorReminder) { reminder in
+            ReminderEditorView(reminder: reminder)
+        }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 Task { await appState.appDidBecomeActive() }
@@ -36,6 +41,34 @@ struct RootView: View {
         }
         .task {
             await appState.appDidBecomeActive()
+            openDemoScreenIfNeeded()
+        }
+    }
+
+    /// Demo mode only: open the screen named by `-BlueNudgeScreen`.
+    private func openDemoScreenIfNeeded() {
+        guard DemoMode.isEnabled, !didApplyDemoScreen else { return }
+        didApplyDemoScreen = true
+        switch DemoMode.screen {
+        case "reminders":
+            appState.selectedTab = .reminders
+        case "people":
+            appState.selectedTab = .people
+        case "activity":
+            appState.selectedTab = .activity
+        case "settings":
+            appState.selectedTab = .settings
+        case "queue":
+            appState.presentSendQueue()
+        case "editor":
+            appState.selectedTab = .reminders
+            demoEditorReminder = Repository(context: DataStore.shared.mainContext)
+                .reminders()
+                .first { $0.title == DemoData.editorReminderTitle }
+        case "onboarding":
+            appState.isShowingOnboarding = true
+        default:
+            appState.selectedTab = .today
         }
     }
 }

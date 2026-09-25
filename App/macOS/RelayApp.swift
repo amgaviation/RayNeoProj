@@ -18,6 +18,15 @@ struct BlueNudgeRelayApp: App {
 
 final class RelayAppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
+        #if DEBUG
+        if let folder = DemoMode.snapshotDirectory {
+            Task { @MainActor in
+                await DemoSnapshots.write(to: folder)
+                NSApplication.shared.terminate(nil)
+            }
+            return
+        }
+        #endif
         // iCloud (CloudKit) pushes tell SwiftData when the iPhone changed something.
         NSApplication.shared.registerForRemoteNotifications()
         Task { @MainActor in

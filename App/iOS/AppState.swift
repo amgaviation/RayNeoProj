@@ -43,7 +43,7 @@ final class AppState: ObservableObject {
     var repository: Repository { Repository(context: DataStore.shared.mainContext) }
 
     func appDidBecomeActive() async {
-        if !hasCompletedOnboarding {
+        if !hasCompletedOnboarding && !DemoMode.isEnabled {
             isShowingOnboarding = true
         }
         repository.settings()

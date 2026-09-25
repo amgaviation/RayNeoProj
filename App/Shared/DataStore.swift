@@ -45,6 +45,14 @@ final class DataStore {
 
     private init() {
         let schema = Schema(AppSchema.models)
+        if DemoMode.isEnabled {
+            // Sample data in memory only; real data is never opened.
+            container = Self.inMemoryContainer(schema: schema)
+            syncStatus = .iCloud(containerID: "iCloud.com.amgaviationgroup.bluenudge")
+            DemoData.seed(into: container.mainContext)
+            SyncMonitor.shared.applyDemoState()
+            return
+        }
         let url = Self.storeURL()
         do {
             // `.automatic` uses the first CloudKit container in the entitlements,
@@ -137,6 +145,7 @@ final class DataStore {
     /// Human-readable iCloud account state for status screens. Only touches
     /// CloudKit when the build is entitled, since CloudKit traps otherwise.
     func iCloudAccountDescription() async -> String {
+        if DemoMode.isEnabled { return "Signed in" }
         let container: CKContainer
         if let id = cloudKitContainerID {
             container = CKContainer(identifier: id)
