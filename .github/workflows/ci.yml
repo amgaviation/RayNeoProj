@@ -66,11 +66,14 @@ jobs:
           CODE_SIGNING_ALLOWED=NO
 
       # SwiftData queries, chat.db queries and the Messages AppleScript.
+      # Filtered rather than -quiet so the log shows how many tests ran.
       - name: App tests (macOS)
-        run: >
-          xcodebuild test -quiet
-          -project BlueNudge.xcodeproj
-          -scheme BlueNudgeTests
-          -destination 'platform=macOS'
-          -derivedDataPath build/DerivedData
-          CODE_SIGNING_ALLOWED=NO
+        run: |
+          set -o pipefail
+          xcodebuild test \
+            -project BlueNudge.xcodeproj \
+            -scheme BlueNudgeTests \
+            -destination 'platform=macOS,arch=arm64' \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            | grep -E "error:|Test Case .* failed|Test Suite '(All tests|.*Tests)' (passed|failed)|Executed [0-9]+ test|\*\* TEST (SUCCEEDED|FAILED)"
