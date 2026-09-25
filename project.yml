@@ -68,6 +68,7 @@ targets:
         BNSubscriptionProductIDs: $(SUBSCRIPTION_PRODUCT_IDS)
         BNPrivacyPolicyURL: $(PRIVACY_POLICY_URL)
         BNTermsURL: $(TERMS_URL)
+        BNTextingCallingCodes: $(TEXTING_CALLING_CODES)
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
           - UIInterfaceOrientationLandscapeLeft
@@ -93,6 +94,9 @@ targets:
         # to ship in apps; never put the secret key here.
         SUPABASE_URL: ""
         SUPABASE_PUBLISHABLE_KEY: ""
+        # Countries texts can go to, as calling codes ("1" is the US and Canada).
+        # Keep in step with the backend's SMS_ALLOWED_COUNTRY_CODES.
+        TEXTING_CALLING_CODES: "1"
         # Auto-renewable subscriptions for "Text me", comma-separated, in the
         # order the paywall lists them. Create them in App Store Connect.
         SUBSCRIPTION_PRODUCT_IDS: com.amgaviationgroup.bluenudge.texts.monthly,com.amgaviationgroup.bluenudge.texts.yearly

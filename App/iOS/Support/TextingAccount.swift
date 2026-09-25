@@ -47,6 +47,10 @@ final class TextingAccount: ObservableObject {
             lastError = "Enter a mobile phone number."
             return
         }
+        guard api.config.allows(phone) else {
+            lastError = "BlueNudge can't text numbers in that country yet."
+            return
+        }
         await run {
             try await api.sendCode(to: phone)
             self.codeSentTo = phone
@@ -62,6 +66,8 @@ final class TextingAccount: ObservableObject {
             self.codeSentTo = nil
             await self.refresh()
             await SubscriptionStore.shared.claimCurrentEntitlements()
+            // Queue "Text me" reminders made before signing in.
+            AppState.shared.dataDidChange()
         }
     }
 

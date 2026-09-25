@@ -2,7 +2,7 @@
 // provider as reminders, so there's one number and one bill.
 import { Webhook } from 'npm:standardwebhooks@1.0.0'
 import { json } from '../_shared/http.ts'
-import { sendSms, smsConfigFromEnv } from '../_shared/sms.ts'
+import { isAllowedNumber, sendSms, smsConfigFromEnv } from '../_shared/sms.ts'
 
 Deno.serve(async (req) => {
   const secret = (Deno.env.get('SEND_SMS_HOOK_SECRETS') ?? '').split('|')[0].replace('v1,whsec_', '')
@@ -14,8 +14,12 @@ Deno.serve(async (req) => {
   } catch {
     return json({ error: { http_code: 401, message: 'Invalid signature' } }, 401)
   }
+  const sms = smsConfigFromEnv()
+  if (!isAllowedNumber(event.user.phone, sms.allowedCallingCodes)) {
+    return json({ error: { http_code: 400, message: "BlueNudge can't text numbers in this country yet." } }, 400)
+  }
   const result = await sendSms(
-    smsConfigFromEnv(),
+    sms,
     event.user.phone,
     `${event.sms.otp} is your BlueNudge code. Don't share it with anyone.`,
   )

@@ -93,5 +93,7 @@ jobs:
             # Images only, so CI is skipped; a bot-triggered CI run would
             # otherwise sit waiting for approval on the PR.
             git commit -m "docs: refresh app screenshots [skip ci]"
+            # The branch may have moved on while the screens were captured.
+            git pull --rebase origin "$BRANCH"
             git push origin "HEAD:$BRANCH"
           fi

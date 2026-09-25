@@ -62,7 +62,7 @@ struct RootView: View {
             demoEditorReminder = Repository(context: DataStore.shared.mainContext)
                 .reminders()
                 .first { $0.title == DemoData.editorReminderTitle }
-        case "onboarding":
+        case "onboarding", "delivery":
             appState.isShowingOnboarding = true
         case "texts":
             appState.selectedTab = .settings
@@ -83,8 +83,9 @@ struct OnboardingView: View {
         case welcome, delivery
     }
 
-    @State private var page: Page = .welcome
-    @State private var choice: DeliveryMethod?
+    // Demo mode can open straight on the second page for screenshots.
+    @State private var page: Page = DemoMode.isEnabled && DemoMode.screen == "delivery" ? .delivery : .welcome
+    @State private var choice: DeliveryMethod? = DemoMode.isEnabled && DemoMode.screen == "delivery" ? .sms : nil
 
     private var repository: Repository { Repository(context: modelContext) }
 

@@ -81,6 +81,7 @@ with the app and its subscriptions in App Store Connect.
    | `TELNYX_API_KEY`, `TELNYX_PUBLIC_KEY` | Telnyx only. The public key is under Keys & Credentials › Public Key. |
    | `TELNYX_MESSAGING_PROFILE_ID` | Telnyx only, optional. |
    | `SMS_HELP_TEXT` | Optional. Empty uses the built-in answer to HELP; `off` if your provider already answers HELP; or your own text with a support contact. |
+   | `SMS_ALLOWED_COUNTRY_CODES` | Optional. Calling codes that may be texted, comma-separated. Default `1` (US and Canada); `*` for any. Keep the app's `TEXTING_CALLING_CODES` the same. |
    | `SEND_SMS_HOOK_SECRETS` | The `v1,whsec_…` secret from step 5. |
    | `APPSTORE_ISSUER_ID`, `APPSTORE_KEY_ID` | App Store Connect › Users and Access › Integrations › In-App Purchase. |
    | `APPSTORE_PRIVATE_KEY` | The contents of the downloaded `.p8` In-App Purchase key (it can be downloaded only once). |
@@ -104,7 +105,10 @@ with the app and its subscriptions in App Store Connect.
 
 6. **Replies.** At the SMS provider, set the number's (or messaging
    service/profile's) incoming-message webhook to the `SMS_INBOUND_URL` above,
-   method POST.
+   method POST. Also limit outbound texts to the countries you serve in the
+   provider's settings (Twilio: Messaging Geographic Permissions; Telnyx: the
+   outbound profile's allowed destinations) as a second guard against SMS
+   pumping through the sign-in code.
 
 7. **Subscriptions.** In App Store Connect, create an auto-renewable subscription
    group with the product IDs from `SUBSCRIPTION_PRODUCT_IDS`, and under App

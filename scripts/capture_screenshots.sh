@@ -90,6 +90,7 @@ shoot activity activity 7
 shoot settings settings 7
 shoot texts texts 8
 shoot onboarding onboarding 7
+shoot delivery onboarding-delivery 7
 
 xcrun simctl ui "$UDID" appearance dark
 shoot today today-dark 7

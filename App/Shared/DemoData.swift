@@ -6,7 +6,7 @@ import ReminderCore
 /// screenshots and App Store previews. It never touches real data and is only
 /// reachable in Debug builds:
 ///
-///     -BlueNudgeDemo YES [-BlueNudgeScreen today|reminders|editor|activity|settings|texts|onboarding]
+///     -BlueNudgeDemo YES [-BlueNudgeScreen today|reminders|editor|activity|settings|texts|onboarding|delivery]
 ///     -BlueNudgeSnapshot <folder>   (Mac relay: write window images there, then quit)
 enum DemoMode {
     static var isEnabled: Bool {

@@ -15,6 +15,12 @@ export interface SmsConfig {
   telnyxPublicKey?: string
   /** The public URL of the sms-inbound function, as configured at the provider. */
   inboundUrl?: string
+  /**
+   * Calling codes texts may go to (SMS_ALLOWED_COUNTRY_CODES, default "1" for
+   * the US and Canada; "*" for any). Keeps costs predictable and blunts SMS
+   * pumping fraud through the sign-in code.
+   */
+  allowedCallingCodes?: string[]
 }
 
 export interface SendResult {
@@ -47,7 +53,16 @@ export function smsConfigFromEnv(get: (name: string) => string | undefined = (n)
     telnyxMessagingProfileId: get('TELNYX_MESSAGING_PROFILE_ID'),
     telnyxPublicKey: get('TELNYX_PUBLIC_KEY'),
     inboundUrl: get('SMS_INBOUND_URL'),
+    allowedCallingCodes: (get('SMS_ALLOWED_COUNTRY_CODES') ?? '1')
+      .split(',').map((code) => code.trim().replace(/^\+/, '')).filter(Boolean),
   }
+}
+
+/** True when `phone` may be texted under `callingCodes` (any number when none are set, or "*"). */
+export function isAllowedNumber(phone: string, callingCodes: string[] | undefined): boolean {
+  if (!callingCodes || callingCodes.length === 0 || callingCodes.includes('*')) return true
+  const digits = e164(phone).slice(1)
+  return callingCodes.some((code) => digits.startsWith(code))
 }
 
 export function e164(phone: string): string {
@@ -56,6 +71,9 @@ export function e164(phone: string): string {
 }
 
 export async function sendSms(config: SmsConfig, to: string, body: string, fetchImpl: Fetch = fetch): Promise<SendResult> {
+  if (!isAllowedNumber(to, config.allowedCallingCodes)) {
+    return { ok: false, error: 'Texts to this country are turned off (SMS_ALLOWED_COUNTRY_CODES).' }
+  }
   return config.provider === 'twilio'
     ? await sendTwilio(config, e164(to), body, fetchImpl)
     : await sendTelnyx(config, e164(to), body, fetchImpl)

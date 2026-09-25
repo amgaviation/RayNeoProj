@@ -16,6 +16,8 @@
 	<string>$(SUPABASE_URL)</string>
 	<key>BNTermsURL</key>
 	<string>$(TERMS_URL)</string>
+	<key>BNTextingCallingCodes</key>
+	<string>$(TEXTING_CALLING_CODES)</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>

@@ -1,6 +1,8 @@
 import { assert, assertEquals } from 'jsr:@std/assert@1'
 import { createHmac } from 'node:crypto'
-import { base64, readInbound, sendSms, type SmsConfig, twilioSignature } from '../functions/_shared/sms.ts'
+import {
+  base64, isAllowedNumber, readInbound, sendSms, type SmsConfig, smsConfigFromEnv, twilioSignature,
+} from '../functions/_shared/sms.ts'
 
 const twilio: SmsConfig = {
   provider: 'twilio', from: '+15550001111', twilioAccountSid: 'AC123', twilioAuthToken: 'secret-token',
@@ -74,4 +76,21 @@ Deno.test('Telnyx Ed25519 webhook verification', async () => {
   assertEquals(await readInbound(config, body.replace('LATER', 'STOP'), headers, now), null)
   assertEquals(await readInbound(config, body, headers, new Date(now.getTime() + 10 * 60_000)), null)
   assert(await readInbound({ ...config, telnyxPublicKey: undefined }, body, headers, now) === null)
+})
+
+Deno.test('only allowed calling codes are texted', async () => {
+  assertEquals(smsConfigFromEnv(() => undefined).allowedCallingCodes, ['1'])
+  const env: Record<string, string> = { SMS_ALLOWED_COUNTRY_CODES: '+1, 44' }
+  assertEquals(smsConfigFromEnv((name) => env[name]).allowedCallingCodes, ['1', '44'])
+
+  assert(isAllowedNumber('+15125550142', ['1']))
+  assert(!isAllowedNumber('+447700900123', ['1']))
+  assert(isAllowedNumber('+447700900123', ['1', '44']))
+  assert(isAllowedNumber('+882123456', ['*']))
+  assert(isAllowedNumber('+882123456', undefined))
+
+  const seen: { url?: string; init?: RequestInit }[] = []
+  const result = await sendSms({ ...twilio, allowedCallingCodes: ['1'] }, '+447700900123', 'Hi', fakeFetch(201, { sid: 'SM1' }, seen))
+  assertEquals(result.ok, false)
+  assertEquals(seen.length, 0)
 })

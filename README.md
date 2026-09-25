@@ -76,7 +76,7 @@ notifications and Mac texts cost nothing per reminder.
 ### 2. Texting and subscription
 
 1. Deploy the backend: [supabase/README.md](supabase/README.md).
-2. In `project.yml`, set the BlueNudge target's `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `PRIVACY_POLICY_URL` and `TERMS_URL`, then run `xcodegen generate`. Without `SUPABASE_URL`, "Text me" is hidden and the app offers alarms and notifications only.
+2. In `project.yml`, set the BlueNudge target's `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, `PRIVACY_POLICY_URL` and `TERMS_URL`, then run `xcodegen generate`. Without `SUPABASE_URL`, "Text me" is hidden and the app offers alarms and notifications only. Texts go to US and Canadian numbers (`TEXTING_CALLING_CODES` in the app, `SMS_ALLOWED_COUNTRY_CODES` on the backend); widen both together if you serve other countries, whose SMS rates are several times higher.
 3. In App Store Connect, create the auto-renewable subscriptions listed in `SUBSCRIPTION_PRODUCT_IDS` (one group, "BlueNudge Texts").
 4. Running from Xcode uses `StoreKit/BlueNudge.storekit`, so you can try the paywall with test purchases before App Store Connect is set up.
 
@@ -140,7 +140,7 @@ the app tests.
 
 Debug builds have a demo mode with sample data that never touches real data:
 launch the iPhone app with `-BlueNudgeDemo YES -BlueNudgeScreen today`
-(or `reminders`, `editor`, `activity`, `settings`, `texts`, `onboarding`). The
+(or `reminders`, `editor`, `activity`, `settings`, `texts`, `onboarding`, `delivery`). The
 *Screenshots* workflow captures every screen in the iOS Simulator plus the Mac
 relay's windows and commits them to `docs/screenshots`; run it from the Actions
 tab or add the `screenshots` label to a pull request.

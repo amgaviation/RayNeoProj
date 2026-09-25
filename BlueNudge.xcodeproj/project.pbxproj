@@ -558,6 +558,7 @@
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TERMS_URL = "";
+				TEXTING_CALLING_CODES = 1;
 			};
 			name = Debug;
 		};
@@ -624,6 +625,7 @@
 				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				TERMS_URL = "";
+				TEXTING_CALLING_CODES = 1;
 			};
 			name = Release;
 		};

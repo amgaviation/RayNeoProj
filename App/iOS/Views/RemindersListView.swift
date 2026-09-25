@@ -28,7 +28,7 @@ struct RemindersListView: View {
                     ContentUnavailableView {
                         Label("No reminders yet", systemImage: "bell.badge")
                     } description: {
-                        Text("Create a reminder and BlueNudge texts it to you on schedule.")
+                        Text("Create a reminder and BlueNudge sends it on schedule as a text, an alarm or a notification.")
                     } actions: {
                         Button("New reminder") { isCreating = true }
                             .buttonStyle(.borderedProminent)

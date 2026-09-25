@@ -168,6 +168,17 @@ final class TextingAPITests: XCTestCase {
         XCTAssertNil(SupabaseDate.parse("yesterday"))
     }
 
+    func testOnlyAllowedCountriesAreTexted() {
+        XCTAssertTrue(config.allows("+15125550142"))
+        XCTAssertFalse(config.allows("+447700900123"))
+        var anywhere = config
+        anywhere.callingCodes = ["*"]
+        XCTAssertTrue(anywhere.allows("+447700900123"))
+        var ukToo = config
+        ukToo.callingCodes = ["1", "44"]
+        XCTAssertTrue(ukToo.allows("+447700900123"))
+    }
+
     func testConfigNeedsHTTPSAndAKey() {
         XCTAssertNil(TextingConfig.fromBundle(Bundle(for: TextingAPITests.self)))
     }

@@ -6,6 +6,9 @@ import Foundation
 struct TextingConfig: Equatable, Sendable {
     let projectURL: URL
     let publishableKey: String
+    /// Calling codes the server texts (TEXTING_CALLING_CODES; must match the
+    /// backend's SMS_ALLOWED_COUNTRY_CODES). Empty or "*" means any.
+    var callingCodes: [String] = ["1"]
 
     static func fromBundle(_ bundle: Bundle = .main) -> TextingConfig? {
         guard let raw = bundle.object(forInfoDictionaryKey: "BNSupabaseURL") as? String,
@@ -14,7 +17,20 @@ struct TextingConfig: Equatable, Sendable {
               let key = bundle.object(forInfoDictionaryKey: "BNSupabaseKey") as? String,
               !key.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         else { return nil }
-        return TextingConfig(projectURL: url, publishableKey: key.trimmingCharacters(in: .whitespacesAndNewlines))
+        var config = TextingConfig(projectURL: url, publishableKey: key.trimmingCharacters(in: .whitespacesAndNewlines))
+        if let codes = bundle.object(forInfoDictionaryKey: "BNTextingCallingCodes") as? String {
+            config.callingCodes = codes.split(separator: ",")
+                .map { $0.trimmingCharacters(in: .whitespaces).replacingOccurrences(of: "+", with: "") }
+                .filter { !$0.isEmpty }
+        }
+        return config
+    }
+
+    /// Whether the server texts `phone` (E.164).
+    func allows(_ phone: String) -> Bool {
+        guard !callingCodes.isEmpty, !callingCodes.contains("*") else { return true }
+        let digits = phone.hasPrefix("+") ? String(phone.dropFirst()) : phone
+        return callingCodes.contains { digits.hasPrefix($0) }
     }
 }
 
