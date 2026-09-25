@@ -32,6 +32,9 @@ packages:
   ReminderCore:
     path: Packages/ReminderCore
 
+fileGroups:
+  - StoreKit
+
 targets:
   BlueNudge:
     type: application
@@ -54,6 +57,17 @@ targets:
           UIApplicationSupportsMultipleScenes: false
         UIBackgroundModes:
           - remote-notification
+          - fetch
+        BGTaskSchedulerPermittedIdentifiers:
+          - com.amgaviationgroup.bluenudge.refresh
+        NSAlarmKitUsageDescription: BlueNudge rings an alarm for reminders you choose to get as an alarm.
+        # Texting backend and subscription, from the build settings below.
+        # When SUPABASE_URL or SUPABASE_PUBLISHABLE_KEY is empty, "Text me" is hidden.
+        BNSupabaseURL: $(SUPABASE_URL)
+        BNSupabaseKey: $(SUPABASE_PUBLISHABLE_KEY)
+        BNSubscriptionProductIDs: $(SUBSCRIPTION_PRODUCT_IDS)
+        BNPrivacyPolicyURL: $(PRIVACY_POLICY_URL)
+        BNTermsURL: $(TERMS_URL)
         UISupportedInterfaceOrientations:
           - UIInterfaceOrientationPortrait
           - UIInterfaceOrientationLandscapeLeft
@@ -75,6 +89,18 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.amgaviationgroup.bluenudge
         TARGETED_DEVICE_FAMILY: "1,2"
+        # Texting backend (see supabase/README.md). The publishable key is meant
+        # to ship in apps; never put the secret key here.
+        SUPABASE_URL: ""
+        SUPABASE_PUBLISHABLE_KEY: ""
+        # Auto-renewable subscriptions for "Text me", comma-separated, in the
+        # order the paywall lists them. Create them in App Store Connect.
+        SUBSCRIPTION_PRODUCT_IDS: com.amgaviationgroup.bluenudge.texts.monthly,com.amgaviationgroup.bluenudge.texts.yearly
+        # Shown on the paywall and in Settings; the App Store requires both for subscriptions.
+        PRIVACY_POLICY_URL: ""
+        TERMS_URL: ""
+        # AlarmKit exists from iOS 26; weak-linked so the app still runs on iOS 17-18.
+        OTHER_LDFLAGS: ["$(inherited)", "-weak_framework", "AlarmKit"]
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
         SUPPORTS_MACCATALYST: NO
@@ -147,6 +173,8 @@ schemes:
         BlueNudge: all
     run:
       config: Debug
+      # Local test purchases for the texting subscription (no App Store Connect needed).
+      storeKitConfiguration: StoreKit/BlueNudge.storekit
     profile:
       config: Release
     analyze:

@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import SwiftData
 import ReminderCore
 
@@ -6,7 +7,9 @@ import ReminderCore
 struct ReminderEditorView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.openURL) private var openURL
     @ObservedObject private var appState = AppState.shared
+    @ObservedObject private var texting = TextingAccount.shared
 
     @Query(sort: \Recipient.createdAt) private var recipients: [Recipient]
     @Query(sort: \RelayHeartbeat.lastSeen, order: .reverse) private var heartbeats: [RelayHeartbeat]
@@ -25,11 +28,14 @@ struct ReminderEditorView: View {
     @State private var endMode: EndMode = .never
     @State private var endDate = Date().addingTimeInterval(30 * 86_400)
     @State private var endCount = 10
-    @State private var method: DeliveryMethod = .relay
+    @State private var method: DeliveryMethod = .notification
     @State private var isActive = true
     @State private var hasLoaded = false
     @State private var isConfirmingDelete = false
     @State private var isEditingNumber = false
+    @State private var isShowingTextingSetup = false
+    @State private var isShowingPaywall = false
+    @State private var alarmAccess = AlarmScheduler.access
 
     enum EndMode: String, CaseIterable, Identifiable {
         case never, onDate, afterCount
@@ -111,6 +117,8 @@ struct ReminderEditorView: View {
             .sheet(isPresented: $isEditingNumber) {
                 NavigationStack { MyNumberView() }
             }
+            .sheet(isPresented: $isShowingTextingSetup) { TextingSetupSheet() }
+            .sheet(isPresented: $isShowingPaywall) { SubscriptionPaywall() }
             .confirmationDialog("Delete this reminder?", isPresented: $isConfirmingDelete, titleVisibility: .visible) {
                 Button("Delete", role: .destructive) {
                     if let reminder {
@@ -235,44 +243,124 @@ struct ReminderEditorView: View {
         }
     }
 
+    private var availableMethods: [DeliveryMethod] {
+        DeliveryMethod.available(hasRelay: !heartbeats.isEmpty, including: reminder?.method)
+    }
+
     private var deliverySection: some View {
         Section {
             Picker("Delivery", selection: $method) {
-                ForEach(DeliveryMethod.allCases) { method in
+                ForEach(availableMethods) { method in
                     Label(method.title, systemImage: method.symbolName).tag(method)
                 }
             }
             .pickerStyle(.inline)
             .labelsHidden()
 
-            if method == .relay {
-                Button {
-                    isEditingNumber = true
-                } label: {
-                    if let me {
-                        LabeledContent("Texts go to", value: me.displayHandle)
-                    } else {
-                        Label("Add the number to text", systemImage: "exclamationmark.circle.fill")
-                            .foregroundStyle(.orange)
-                    }
-                }
-                .foregroundStyle(Color.primary)
+            switch method {
+            case .sms: textStatusRow
+            case .alarm: alarmStatusRow
+            case .relay: relayNumberRow
+            case .notification: EmptyView()
             }
         } header: {
             Text("How")
         } footer: {
             VStack(alignment: .leading, spacing: 4) {
                 Text(method.explanation)
-                if method == .relay {
-                    if let heartbeat = heartbeats.first {
-                        Text(heartbeat.isOnline() ? "Relay online on \(heartbeat.deviceName)." : "Relay last seen \(heartbeat.lastSeen.formatted(.relative(presentation: .named))) on \(heartbeat.deviceName).")
-                            .foregroundStyle(heartbeat.isOnline() ? Color.green : Color.orange)
-                    } else {
-                        Text("No Mac relay has checked in yet. Texts wait until one does, and show as late on the Today screen.")
-                            .foregroundStyle(.orange)
-                    }
+                deliveryNote
+            }
+        }
+    }
+
+    @ViewBuilder
+    private var textStatusRow: some View {
+        if !texting.isSignedIn {
+            Button {
+                isShowingTextingSetup = true
+            } label: {
+                Label("Sign in to get texts", systemImage: "exclamationmark.circle.fill")
+                    .foregroundStyle(.orange)
+            }
+        } else if texting.status != nil, !texting.isSubscribed {
+            Button {
+                isShowingPaywall = true
+            } label: {
+                Label("Subscribe to get texts", systemImage: "exclamationmark.circle.fill")
+                    .foregroundStyle(.orange)
+            }
+        } else {
+            Button {
+                isShowingTextingSetup = true
+            } label: {
+                LabeledContent("Texts go to", value: HandleNormalizer.displayFormat(texting.session?.phone ?? ""))
+            }
+            .foregroundStyle(Color.primary)
+        }
+    }
+
+    @ViewBuilder
+    private var alarmStatusRow: some View {
+        switch alarmAccess {
+        case .notDetermined:
+            Button("Allow alarms") {
+                Task {
+                    await AlarmScheduler.requestAccess()
+                    alarmAccess = AlarmScheduler.access
+                    appState.dataDidChange()
                 }
             }
+        case .denied:
+            Button {
+                if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
+            } label: {
+                Label("Alarms are off. Turn them on in Settings", systemImage: "exclamationmark.circle.fill")
+                    .foregroundStyle(.orange)
+            }
+        case .unsupported:
+            Label("Alarms need iOS 26 or later", systemImage: "exclamationmark.circle.fill")
+                .foregroundStyle(.orange)
+        case .authorized:
+            EmptyView()
+        }
+    }
+
+    private var relayNumberRow: some View {
+        Button {
+            isEditingNumber = true
+        } label: {
+            if let me {
+                LabeledContent("Texts go to", value: me.displayHandle)
+            } else {
+                Label("Add the number to text", systemImage: "exclamationmark.circle.fill")
+                    .foregroundStyle(.orange)
+            }
+        }
+        .foregroundStyle(Color.primary)
+    }
+
+    @ViewBuilder
+    private var deliveryNote: some View {
+        switch method {
+        case .sms:
+            if texting.textsPaused {
+                Text("Texts are paused. Turn them back on in Settings › Texts.")
+                    .foregroundStyle(.orange)
+            }
+        case .relay:
+            if let heartbeat = heartbeats.first {
+                Text(heartbeat.isOnline() ? "Relay online on \(heartbeat.deviceName)." : "Relay last seen \(heartbeat.lastSeen.formatted(.relative(presentation: .named))) on \(heartbeat.deviceName).")
+                    .foregroundStyle(heartbeat.isOnline() ? Color.green : Color.orange)
+            } else {
+                Text("No Mac relay has checked in yet. Texts wait until one does, and show as late on the Today screen.")
+                    .foregroundStyle(.orange)
+            }
+        case .alarm:
+            if alarmAccess == .authorized {
+                Text("The next \(AlarmScheduler.maxScheduled) alarms are set ahead and topped up whenever BlueNudge opens.")
+            }
+        case .notification:
+            EmptyView()
         }
     }
 
@@ -310,7 +398,8 @@ struct ReminderEditorView: View {
         guard !hasLoaded else { return }
         hasLoaded = true
         guard let reminder else {
-            method = repository.existingSettings()?.defaultMethod ?? .relay
+            let preferred = repository.existingSettings()?.defaultMethod ?? .notification
+            method = availableMethods.contains(preferred) ? preferred : (availableMethods.first ?? .notification)
             start = Self.nextRoundHour()
             return
         }
@@ -376,13 +465,23 @@ struct ReminderEditorView: View {
         }
         repository.save()
         appState.dataDidChange()
-        if method == .notification {
+        switch method {
+        case .notification:
             Task {
                 if await NotificationScheduler.authorizationStatus() == .notDetermined {
                     await NotificationScheduler.requestAuthorization()
                     appState.dataDidChange()
                 }
             }
+        case .alarm:
+            if AlarmScheduler.access == .notDetermined {
+                Task {
+                    await AlarmScheduler.requestAccess()
+                    appState.dataDidChange()
+                }
+            }
+        case .sms, .relay:
+            break
         }
         dismiss()
     }

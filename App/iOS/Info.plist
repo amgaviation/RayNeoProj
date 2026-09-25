@@ -2,6 +2,20 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>com.amgaviationgroup.bluenudge.refresh</string>
+	</array>
+	<key>BNPrivacyPolicyURL</key>
+	<string>$(PRIVACY_POLICY_URL)</string>
+	<key>BNSubscriptionProductIDs</key>
+	<string>$(SUBSCRIPTION_PRODUCT_IDS)</string>
+	<key>BNSupabaseKey</key>
+	<string>$(SUPABASE_PUBLISHABLE_KEY)</string>
+	<key>BNSupabaseURL</key>
+	<string>$(SUPABASE_URL)</string>
+	<key>BNTermsURL</key>
+	<string>$(TERMS_URL)</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
@@ -24,6 +38,8 @@
 	<false/>
 	<key>LSApplicationCategoryType</key>
 	<string>public.app-category.productivity</string>
+	<key>NSAlarmKitUsageDescription</key>
+	<string>BlueNudge rings an alarm for reminders you choose to get as an alarm.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -32,6 +48,7 @@
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>
+		<string>fetch</string>
 	</array>
 	<key>UILaunchScreen</key>
 	<dict/>

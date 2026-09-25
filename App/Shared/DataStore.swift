@@ -50,6 +50,9 @@ final class DataStore {
             container = Self.inMemoryContainer(schema: schema)
             syncStatus = .iCloud(containerID: "iCloud.com.amgaviationgroup.bluenudge")
             DemoData.seed(into: container.mainContext)
+            #if os(iOS)
+            TextingAccount.shared.setDemoTexts(DemoData.texts(repository: Repository(context: container.mainContext)))
+            #endif
             SyncMonitor.shared.applyDemoState()
             return
         }

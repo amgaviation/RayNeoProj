@@ -25,6 +25,13 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
         SyncMonitor.shared.start()
         UNUserNotificationCenter.current().delegate = self
         NotificationScheduler.registerCategories()
+        BackgroundRefresh.register()
+        BackgroundRefresh.schedule()
+        Task { @MainActor in
+            SubscriptionStore.shared.start()
+            await SubscriptionStore.shared.claimCurrentEntitlements()
+            await TextingAccount.shared.refresh()
+        }
         // SwiftData's CloudKit sync relies on silent pushes to pick up changes
         // made on other devices while this app is in the background.
         application.registerForRemoteNotifications()

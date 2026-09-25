@@ -88,6 +88,7 @@ shoot reminders reminders 7
 shoot editor editor 8
 shoot activity activity 7
 shoot settings settings 7
+shoot texts texts 8
 shoot onboarding onboarding 7
 
 xcrun simctl ui "$UDID" appearance dark

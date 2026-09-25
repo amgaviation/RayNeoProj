@@ -206,3 +206,37 @@ final class PlannerTests: XCTestCase {
         XCTAssertNil(OccurrenceKey.parse("garbage"))
     }
 }
+
+final class DeliveryMethodTests: XCTestCase {
+    func testRawValuesAreStable() {
+        // Stored in iCloud and on the server; renaming a case would orphan data.
+        XCTAssertEqual(DeliveryMethod.allCases.map(\.rawValue), ["sms", "alarm", "notification", "relay"])
+        XCTAssertEqual(DeliveryMethod(rawValue: "relay"), .relay)
+        XCTAssertNil(DeliveryMethod(rawValue: "tapToSend"))
+    }
+
+    func testLocalMethods() {
+        XCTAssertTrue(DeliveryMethod.alarm.isLocal)
+        XCTAssertTrue(DeliveryMethod.notification.isLocal)
+        XCTAssertFalse(DeliveryMethod.sms.isLocal)
+        XCTAssertFalse(DeliveryMethod.relay.isLocal)
+    }
+
+    func testUpcomingFiltersByMethod() {
+        let start = Date(timeIntervalSince1970: 1_790_000_000)
+        let schedule = Schedule(frequency: .daily, start: start, timeZoneIdentifier: "UTC")
+        func make(_ method: DeliveryMethod) -> PlannerReminder {
+            PlannerReminder(id: UUID(), title: method.rawValue, template: "x", schedule: schedule, recipientIDs: [],
+                            method: method, isActive: true, activeSince: start.addingTimeInterval(-60))
+        }
+        let reminders = DeliveryMethod.allCases.map(make)
+        for method in DeliveryMethod.allCases {
+            let items = DuePlanner.upcoming(reminders: reminders, method: method, after: start.addingTimeInterval(-1),
+                                            horizon: 3 * 86_400, limit: 10)
+            XCTAssertEqual(items.count, 3)
+            XCTAssertTrue(items.allSatisfy { item in reminders.first { $0.id == item.reminderID }?.method == method })
+        }
+        XCTAssertEqual(DuePlanner.upcoming(reminders: reminders, method: nil, after: start.addingTimeInterval(-1),
+                                           horizon: 86_400, limit: 100).count, 4)
+    }
+}

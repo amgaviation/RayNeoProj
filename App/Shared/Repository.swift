@@ -85,8 +85,8 @@ struct Repository {
         return recipient
     }
 
-    /// A one-time reminder, e.g. from Siri or a SNOOZE reply. Texted when a
-    /// number is set and texts are the default; otherwise a notification.
+    /// A one-time reminder, e.g. from Siri or a SNOOZE reply. Uses the default
+    /// for new reminders, except that Mac texts need a number to go to.
     @discardableResult
     func addOneTimeReminder(
         title: String,
@@ -97,7 +97,8 @@ struct Repository {
         now: Date = Date()
     ) -> Reminder {
         let me = me()
-        let resolved = method ?? (me == nil ? .notification : (existingSettings()?.defaultMethod ?? .relay))
+        let preferred = existingSettings()?.defaultMethod ?? .relay
+        let resolved = method ?? (preferred == .relay && me == nil ? .notification : preferred)
         // Whole minutes, rounded up, so "in 10 minutes" is never early.
         let start = Date(timeIntervalSinceReferenceDate: (date.timeIntervalSinceReferenceDate / 60).rounded(.up) * 60)
         let reminder = Reminder(

@@ -205,7 +205,7 @@ final class RepositoryTests: XCTestCase {
 
     func testDemoDataIsConsistent() throws {
         let repository = try makeRepository()
-        DemoData.seed(into: repository.context)
+        DemoData.seed(into: repository.context, style: .mac)
         let now = Date()
 
         let me = try XCTUnwrap(repository.me())
@@ -223,6 +223,25 @@ final class RepositoryTests: XCTestCase {
         XCTAssertTrue(relay.toSend.isEmpty)
         XCTAssertTrue(relay.missed.isEmpty)
         XCTAssertFalse(repository.deliveries(since: now.addingTimeInterval(-7 * 86_400)).isEmpty)
+    }
+
+    func testIPhoneDemoDataUsesTextsAlarmsAndNotifications() throws {
+        let repository = try makeRepository()
+        DemoData.seed(into: repository.context, style: .iPhone)
+        let now = Date()
+
+        let methods = Set(repository.reminders().map(\.method))
+        XCTAssertEqual(repository.reminders().count, 9)
+        XCTAssertEqual(methods, [.sms, .alarm, .notification])
+        XCTAssertEqual(repository.existingSettings()?.defaultMethod, .sms)
+        XCTAssertTrue(repository.heartbeats().isEmpty)
+        XCTAssertTrue(repository.deliveries(since: now.addingTimeInterval(-7 * 86_400)).isEmpty)
+
+        let texts = DemoData.texts(repository: repository, now: now)
+        XCTAssertFalse(texts.isEmpty)
+        XCTAssertEqual(Set(texts.map(\.id)).count, texts.count)
+        XCTAssertTrue(texts.allSatisfy { $0.fireAt <= now && $0.status == "delivered" })
+        XCTAssertEqual(texts.map(\.fireAt), texts.map(\.fireAt).sorted(by: >))
     }
 
     func testOptOutBookkeeping() {

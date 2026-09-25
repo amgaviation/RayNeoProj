@@ -1,11 +1,14 @@
 import SwiftUI
+import UIKit
 import SwiftData
 import ReminderCore
 
 /// Home screen: setup that's still missing, what's coming next, what was sent.
 struct TodayView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(\.openURL) private var openURL
     @ObservedObject private var appState = AppState.shared
+    @ObservedObject private var texting = TextingAccount.shared
 
     @Query(sort: \Reminder.createdAt, order: .reverse) private var reminders: [Reminder]
     @Query(sort: \Recipient.createdAt) private var recipients: [Recipient]
@@ -14,6 +17,8 @@ struct TodayView: View {
 
     @State private var isCreatingReminder = false
     @State private var isEditingNumber = false
+    @State private var isShowingPaywall = false
+    @State private var alarmAccess = AlarmScheduler.access
 
     init() {
         var descriptor = FetchDescriptor<DeliveryRecord>(sortBy: [SortDescriptor(\.createdAt, order: .reverse)])
@@ -44,6 +49,10 @@ struct TodayView: View {
             .sheet(isPresented: $isEditingNumber) {
                 NavigationStack { MyNumberView() }
             }
+            .sheet(isPresented: $isShowingPaywall) { SubscriptionPaywall() }
+            .onChange(of: appState.refreshToken) { _, _ in
+                alarmAccess = AlarmScheduler.access
+            }
         }
     }
 
@@ -52,69 +61,64 @@ struct TodayView: View {
         // Re-read when data changes elsewhere; the token is otherwise unused.
         let _ = appState.refreshToken
         let me = recipients.first
-        let late = LateTexts.messages(repository: repository, now: now)
+        let active = reminders.filter(\.isActive)
+        let usesTexts = active.contains { $0.method == .sms }
+        let usesAlarms = active.contains { $0.method == .alarm }
+        let usesRelay = active.contains { $0.method == .relay }
+        let late = usesRelay ? LateTexts.messages(repository: repository, now: now) : []
         let upcoming = upcomingItems(now: now)
-        let usesTexts = reminders.contains { $0.method == .relay && $0.isActive }
+        let recent = Array(ActivityEntry.merged(records: recentDeliveries, texts: texting.recentTexts).prefix(5))
 
         List {
-            if me == nil {
-                Section {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Label("Where should reminders be texted?", systemImage: "message.badge")
-                            .font(.headline)
-                        Text("Add the phone number or iMessage email your iPhone receives texts on.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        Button("Add my number") { isEditingNumber = true }
-                            .buttonStyle(.borderedProminent)
+            if usesTexts {
+                textingCard
+            }
+            if usesAlarms {
+                alarmCard
+            }
+            if usesRelay {
+                if me == nil {
+                    SetupCard(
+                        symbol: "message.badge",
+                        title: "Where should your Mac text you?",
+                        detail: "Add the phone number or iMessage email your iPhone receives texts on.",
+                        actionTitle: "Add my number"
+                    ) { isEditingNumber = true }
+                } else if let me, me.optedOut {
+                    SetupCard(
+                        symbol: "pause.circle.fill",
+                        tint: .orange,
+                        title: "Mac texts are paused",
+                        detail: me.optOutSource == "reply"
+                            ? "You replied STOP. Reply START to the BlueNudge thread, or resume here."
+                            : "Mac texts due while paused are skipped.",
+                        actionTitle: "Resume Mac texts",
+                        isProminent: false
+                    ) {
+                        me.setOptedOut(false, source: "manual")
+                        repository.save()
+                        appState.dataDidChange()
                     }
-                    .padding(.vertical, 6)
-                }
-            } else if me?.optedOut == true {
-                Section {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Label("Texts are paused", systemImage: "pause.circle.fill")
-                            .font(.headline)
-                            .foregroundStyle(.orange)
-                        Text(me?.optOutSource == "reply"
-                             ? "You replied STOP. Reply START to the BlueNudge thread, or resume here."
-                             : "Reminders due while paused are skipped. Notification reminders still arrive.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        Button("Resume texts") {
-                            me?.setOptedOut(false, source: "manual")
-                            repository.save()
-                            appState.dataDidChange()
-                        }
-                        .buttonStyle(.bordered)
-                    }
-                    .padding(.vertical, 4)
                 }
             }
 
             if reminders.isEmpty {
-                Section {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Get your reminders as texts")
-                            .font(.headline)
-                        Text("Pick what to be reminded of and when. The reminder lands in Messages like any other text, so it's hard to miss and easy to find later.")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                        Button("Create your first reminder") { isCreatingReminder = true }
-                            .buttonStyle(.borderedProminent)
-                    }
-                    .padding(.vertical, 6)
-                }
+                SetupCard(
+                    symbol: "bell.badge",
+                    title: "Never miss a reminder",
+                    detail: "Pick what to be reminded of and when. Get it as a text message, an alarm that rings through silent mode, or a notification.",
+                    actionTitle: "Create your first reminder"
+                ) { isCreatingReminder = true }
             }
 
-            if usesTexts || !heartbeats.isEmpty {
+            if usesRelay || !heartbeats.isEmpty {
                 Section {
                     RelayStatusView(heartbeat: heartbeats.first)
                 } header: {
-                    Text("Texts are sent by")
+                    Text("Mac texts are sent by")
                 } footer: {
                     if let me {
-                        Text("Texts go to \(me.displayHandle).")
+                        Text("Mac texts go to \(me.displayHandle).")
                     }
                 }
             }
@@ -149,14 +153,87 @@ struct TodayView: View {
                 }
             }
 
-            if !recentDeliveries.isEmpty {
+            if !recent.isEmpty {
                 Section("Recently texted") {
-                    ForEach(recentDeliveries) { record in
-                        DeliveryRow(record: record)
+                    ForEach(recent) { entry in
+                        DeliveryRow(entry: entry)
                     }
                     Button("See all activity") { appState.selectedTab = .activity }
                 }
             }
+        }
+    }
+
+    /// What's still needed before "Text me" reminders go out.
+    @ViewBuilder
+    private var textingCard: some View {
+        if !texting.isConfigured {
+            EmptyView()
+        } else if !texting.isSignedIn {
+            SetupCard(
+                symbol: "message.badge",
+                title: "Sign in to get your texts",
+                detail: "Your \"Text me\" reminders are ready. Sign in with your phone number to start getting them.",
+                actionTitle: "Sign in"
+            ) { appState.isShowingTextingSetup = true }
+        } else if let status = texting.status, !status.subscribed {
+            SetupCard(
+                symbol: "message.badge",
+                title: "Subscribe to get your texts",
+                detail: "Your \"Text me\" reminders go out as soon as the subscription starts.",
+                actionTitle: "See plans"
+            ) { isShowingPaywall = true }
+        } else if texting.textsPaused {
+            SetupCard(
+                symbol: "pause.circle.fill",
+                tint: .orange,
+                title: "Texts are paused",
+                detail: "Reminders due while paused are skipped. Reply START to BlueNudge, or resume here.",
+                actionTitle: "Resume texts",
+                isProminent: false
+            ) { Task { await texting.setPaused(false) } }
+        }
+    }
+
+    /// Alarm reminders can't ring until BlueNudge may set alarms.
+    @ViewBuilder
+    private var alarmCard: some View {
+        switch alarmAccess {
+        case .notDetermined:
+            SetupCard(
+                symbol: "alarm",
+                title: "Allow alarms",
+                detail: "Your alarm reminders can't ring until BlueNudge is allowed to set alarms.",
+                actionTitle: "Allow alarms"
+            ) {
+                Task {
+                    await AlarmScheduler.requestAccess()
+                    alarmAccess = AlarmScheduler.access
+                    appState.dataDidChange()
+                }
+            }
+        case .denied:
+            SetupCard(
+                symbol: "alarm",
+                tint: .orange,
+                title: "Alarms are turned off",
+                detail: "Turn on alarms for BlueNudge in the Settings app, or switch these reminders to a text or notification.",
+                actionTitle: "Open Settings",
+                isProminent: false
+            ) {
+                if let url = URL(string: UIApplication.openSettingsURLString) { openURL(url) }
+            }
+        case .unsupported:
+            SetupCard(
+                symbol: "alarm",
+                tint: .orange,
+                title: "Alarms need iOS 26",
+                detail: "Update iOS, or switch these reminders to a text or notification.",
+                actionTitle: "See reminders",
+                isProminent: false
+            ) { appState.selectedTab = .reminders }
+        case .authorized:
+            EmptyView()
         }
     }
 
@@ -226,5 +303,37 @@ private struct UpcomingRow: View {
             return "Tomorrow"
         }
         return date.formatted(.dateTime.weekday(.abbreviated).month(.abbreviated).day())
+    }
+}
+
+/// A card at the top of Today for something that still needs doing.
+private struct SetupCard: View {
+    let symbol: String
+    var tint: Color?
+    let title: String
+    let detail: String
+    let actionTitle: String
+    var isProminent = true
+    let action: () -> Void
+
+    var body: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 10) {
+                Label(title, systemImage: symbol)
+                    .font(.headline)
+                    .foregroundStyle(tint ?? Color.primary)
+                Text(detail)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                if isProminent {
+                    Button(actionTitle, action: action)
+                        .buttonStyle(.borderedProminent)
+                } else {
+                    Button(actionTitle, action: action)
+                        .buttonStyle(.bordered)
+                }
+            }
+            .padding(.vertical, 6)
+        }
     }
 }

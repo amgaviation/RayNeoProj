@@ -26,6 +26,9 @@ struct RootView: View {
         .fullScreenCover(isPresented: $appState.isShowingOnboarding) {
             OnboardingView()
         }
+        .sheet(isPresented: $appState.isShowingTextingSetup) {
+            TextingSetupSheet()
+        }
         .sheet(item: $demoEditorReminder) { reminder in
             ReminderEditorView(reminder: reminder)
         }
@@ -61,46 +64,33 @@ struct RootView: View {
                 .first { $0.title == DemoData.editorReminderTitle }
         case "onboarding":
             appState.isShowingOnboarding = true
+        case "texts":
+            appState.selectedTab = .settings
+            try? await Task.sleep(nanoseconds: 600_000_000)
+            appState.isShowingTextingSetup = true
         default:
             appState.selectedTab = .today
         }
     }
 }
 
-/// First run: what the app does, whether there's a Mac to send texts, and
-/// where the texts should go.
+/// First run: what the app does and how reminders should reach you.
 struct OnboardingView: View {
     @ObservedObject private var appState = AppState.shared
     @Environment(\.modelContext) private var modelContext
 
     private enum Page: Int {
-        case welcome, delivery, number
+        case welcome, delivery
     }
 
     @State private var page: Page = .welcome
-    @State private var hasMac: Bool?
-    @State private var handle = ""
+    @State private var choice: DeliveryMethod?
 
     private var repository: Repository { Repository(context: modelContext) }
 
-    private var normalizedHandle: String? {
-        let trimmed = handle.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty else { return nil }
-        let code = repository.existingSettings()?.defaultCountryCode
-            ?? CallingCodes.callingCode(forRegion: Locale.current.region?.identifier)
-        return HandleNormalizer.normalize(trimmed, defaultCountryCode: code)
-    }
-
-    private var isLastPage: Bool {
-        page == .number || (page == .delivery && hasMac == false)
-    }
-
-    private var canContinue: Bool {
-        switch page {
-        case .welcome: return true
-        case .delivery: return hasMac != nil
-        case .number: return normalizedHandle != nil
-        }
+    /// The ways this iPhone can get reminders without a Mac.
+    private var choices: [DeliveryMethod] {
+        DeliveryMethod.available(hasRelay: false).filter { $0 != .relay }
     }
 
     var body: some View {
@@ -111,7 +101,6 @@ struct OnboardingView: View {
                         switch page {
                         case .welcome: welcome
                         case .delivery: delivery
-                        case .number: number
                         }
                     }
                     .padding(24)
@@ -119,22 +108,22 @@ struct OnboardingView: View {
                     .frame(maxWidth: .infinity)
                 }
 
-                PageDots(count: hasMac == false ? 2 : 3, current: page.rawValue)
+                PageDots(count: 2, current: page.rawValue)
 
                 Button(action: advance) {
-                    Text(isLastPage ? "Get started" : "Continue")
+                    Text(page == .delivery ? "Get started" : "Continue")
                         .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
-                .disabled(!canContinue)
+                .disabled(page == .delivery && choice == nil)
                 .padding(.horizontal, 24)
             }
             .padding(.bottom)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     if page != .welcome {
-                        Button("Back") { withAnimation { goBack() } }
+                        Button("Back") { withAnimation { page = .welcome } }
                     }
                 }
                 ToolbarItem(placement: .primaryAction) {
@@ -147,107 +136,79 @@ struct OnboardingView: View {
 
     private var welcome: some View {
         VStack(alignment: .leading, spacing: 18) {
-            Image(systemName: "bubble.left.and.text.bubble.right.fill")
+            Image(systemName: "bell.and.waves.left.and.right.fill")
                 .font(.system(size: 56))
                 .foregroundStyle(Color.accentColor)
-            Text("Reminders that arrive as texts")
+            Text("Reminders you won't miss")
                 .font(.largeTitle.bold())
-            Text("BlueNudge texts your reminders to you in Messages, where they're hard to miss and easy to find later.")
+            Text("BlueNudge reminds you the way that's hardest to ignore: a text message, an alarm or a notification.")
                 .foregroundStyle(.secondary)
             FeatureLine(symbol: "calendar.badge.clock", text: "Once, hourly, daily, weekly, monthly or yearly, with quiet hours for hourly ones.")
-            FeatureLine(symbol: "arrowshape.turn.up.left.fill", text: "Reply SNOOZE to get it again in 10 minutes, or SNOOZE 1H. Reply STOP to pause everything.")
-            FeatureLine(symbol: "icloud.fill", text: "Private: reminders sync through your own iCloud. No accounts, no servers.")
-            FeatureLine(symbol: "dollarsign.circle.fill", text: "No per-text fees. Texts go out through Messages on your Mac.")
+            FeatureLine(symbol: "message.fill", text: "Texts land in Messages. Reply SNOOZE to get one again later, or STOP to pause.")
+            FeatureLine(symbol: "alarm.fill", text: "Alarms ring through silent mode and Focus until you stop them.")
+            FeatureLine(symbol: "icloud.fill", text: "Your reminders stay on your iPhone and in your private iCloud.")
         }
     }
 
     private var delivery: some View {
         VStack(alignment: .leading, spacing: 18) {
-            Text("Do you have a Mac that can stay on?")
+            Text("How should reminders reach you?")
                 .font(.title.bold())
-            Text("iPhone apps can't send texts on their own. A Mac running BlueNudge Relay can, so your reminders arrive as real texts. Without a Mac, you get a notification instead.")
+            Text("This is the default for new reminders. Each reminder can use its own.")
                 .foregroundStyle(.secondary)
-            ChoiceCard(
-                title: "Yes, text me",
-                detail: "Reminders arrive in Messages, sent by the Mac.",
-                symbol: "message.fill",
-                isSelected: hasMac == true
-            ) { hasMac = true }
-            ChoiceCard(
-                title: "No, notify me",
-                detail: "Reminders arrive as notifications on this iPhone.",
-                symbol: "bell.fill",
-                isSelected: hasMac == false
-            ) { hasMac = false }
-            Text("You can change this for each reminder at any time.")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
+            ForEach(choices) { method in
+                ChoiceCard(
+                    title: method.title,
+                    detail: Self.pitch(for: method),
+                    symbol: method.symbolName,
+                    isSelected: choice == method
+                ) { choice = method }
+            }
         }
     }
 
-    private var number: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            Text("Where should reminders be texted?")
-                .font(.title.bold())
-            Text("Your iPhone's number, or the email you use for iMessage.")
-                .foregroundStyle(.secondary)
-            TextField("Phone number or email", text: $handle)
-                .textFieldStyle(.roundedBorder)
-                .textContentType(.telephoneNumber)
-                .keyboardType(.emailAddress)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-            if let normalizedHandle {
-                Label("Texts will go to \(HandleNormalizer.displayFormat(normalizedHandle))", systemImage: "checkmark.circle.fill")
-                    .font(.subheadline)
-                    .foregroundStyle(.green)
-            }
-            Label {
-                Text("On the Mac, sign Messages in to a second Apple Account, not yours. Otherwise the texts look like you sent them and your iPhone won't alert you. Settings › Mac relay has the steps.")
-            } icon: {
-                Image(systemName: "info.circle")
-                    .foregroundStyle(Color.accentColor)
-            }
-            .font(.footnote)
-            .foregroundStyle(.secondary)
+    private static func pitch(for method: DeliveryMethod) -> String {
+        switch method {
+        case .sms: return "A real text message from BlueNudge. Reply SNOOZE to get it again. Subscription."
+        case .alarm: return "Rings like an alarm, even on silent, until you stop it. Free."
+        case .notification: return "A notification on this iPhone. Free."
+        case .relay: return "An iMessage from your own Mac. Free."
         }
     }
 
     private func advance() {
-        if isLastPage {
+        if page == .delivery {
             complete()
-            return
-        }
-        withAnimation {
-            switch page {
-            case .welcome: page = .delivery
-            case .delivery: page = .number
-            case .number: break
-            }
-        }
-    }
-
-    private func goBack() {
-        switch page {
-        case .welcome: break
-        case .delivery: page = .welcome
-        case .number: page = .delivery
+        } else {
+            withAnimation { page = .delivery }
         }
     }
 
     private func complete() {
         let settings = repository.settings()
-        if let hasMac {
-            settings.defaultMethod = hasMac ? .relay : .notification
+        if let choice {
+            settings.defaultMethod = choice
             settings.updatedAt = Date()
+        } else if settings.defaultMethod == .relay {
+            // Skipped: don't default to a Mac nobody set up.
+            settings.defaultMethod = .notification
         }
         repository.save()
-        if hasMac == true, normalizedHandle != nil {
-            repository.setMyHandle(handle.trimmingCharacters(in: .whitespacesAndNewlines))
-        }
         appState.completeOnboarding()
+        let chosen = choice
         Task {
-            await NotificationScheduler.requestAuthorization()
+            switch chosen {
+            case .sms:
+                // Let the full-screen cover finish closing first.
+                try? await Task.sleep(nanoseconds: 700_000_000)
+                appState.isShowingTextingSetup = true
+            case .alarm:
+                await AlarmScheduler.requestAccess()
+            case .notification:
+                await NotificationScheduler.requestAuthorization()
+            case .relay, nil:
+                break
+            }
             appState.dataDidChange()
         }
     }
@@ -266,21 +227,6 @@ private struct PageDots: View {
             }
         }
         .accessibilityHidden(true)
-    }
-}
-
-private struct FeatureLine: View {
-    let symbol: String
-    let text: String
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 14) {
-            Image(systemName: symbol)
-                .font(.title3)
-                .foregroundStyle(Color.accentColor)
-                .frame(width: 28)
-            Text(text)
-        }
     }
 }
 

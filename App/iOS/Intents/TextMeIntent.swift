@@ -7,7 +7,7 @@ import ReminderCore
 struct TextMeReminderIntent: AppIntent {
     static let title: LocalizedStringResource = "Text Me a Reminder"
     static let description = IntentDescription(
-        "Schedules a one-time reminder. BlueNudge texts it to you through the Mac relay, or sends a notification when no number is set."
+        "Schedules a one-time reminder, delivered the way you chose for new reminders: a text, an alarm or a notification."
     )
     static let openAppWhenRun = false
 
@@ -39,8 +39,10 @@ struct TextMeReminderIntent: AppIntent {
         AppState.shared.dataDidChange()
         let when = WhenPhrase.describe(reminder.schedule.start)
         switch reminder.method {
-        case .relay:
+        case .sms, .relay:
             return .result(dialog: "Okay, I'll text you \(when).")
+        case .alarm:
+            return .result(dialog: "Okay, your alarm will ring \(when).")
         case .notification:
             return .result(dialog: "Okay, I'll remind you \(when).")
         }

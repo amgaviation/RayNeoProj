@@ -16,6 +16,8 @@ final class AppState: ObservableObject {
 
     @Published var selectedTab: Tab = .today
     @Published var isShowingOnboarding = false
+    /// Sign-in and subscription for "Text me" reminders.
+    @Published var isShowingTextingSetup = false
     @Published var iCloudAccount = "Checking…"
     /// Bumped whenever data changes elsewhere (e.g. iCloud import) so views re-plan.
     @Published var refreshToken = UUID()
@@ -48,9 +50,16 @@ final class AppState: ObservableObject {
         let settings = repository.settings()
         repository.pruneDeliveries(olderThanDays: settings.logRetentionDays)
         repository.pruneFinishedSnoozes()
-        await NotificationScheduler.reschedule(using: repository)
+        await refreshScheduledDeliveries()
         iCloudAccount = await DataStore.shared.iCloudAccountDescription()
         refreshToken = UUID()
+    }
+
+    /// Notifications, alarms and the server's text queue, from the current data.
+    func refreshScheduledDeliveries() async {
+        await NotificationScheduler.reschedule(using: repository)
+        await AlarmScheduler.reschedule(using: repository)
+        await TextingAccount.shared.sync(repository: repository)
     }
 
     func completeOnboarding() {
@@ -66,6 +75,8 @@ final class AppState: ObservableObject {
             try? await Task.sleep(nanoseconds: 800_000_000)
             guard !Task.isCancelled, let self else { return }
             await NotificationScheduler.reschedule(using: self.repository)
+            await AlarmScheduler.reschedule(using: self.repository)
+            await TextingAccount.shared.sync(repository: self.repository)
         }
     }
 }

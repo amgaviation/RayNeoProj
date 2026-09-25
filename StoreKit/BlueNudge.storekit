@@ -1,0 +1,77 @@
+{
+  "identifier" : "4B1D2E7A",
+  "nonRenewingSubscriptions" : [
+
+  ],
+  "products" : [
+
+  ],
+  "settings" : {
+
+  },
+  "subscriptionGroups" : [
+    {
+      "id" : "7C3E91A0",
+      "localizations" : [
+
+      ],
+      "name" : "BlueNudge Texts",
+      "subscriptions" : [
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "39.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "A1F0C3D2",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Your reminders as text messages, billed yearly.",
+              "displayName" : "Texts Yearly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.amgaviationgroup.bluenudge.texts.yearly",
+          "recurringSubscriptionPeriod" : "P1Y",
+          "referenceName" : "Texts Yearly",
+          "subscriptionGroupID" : "7C3E91A0",
+          "type" : "RecurringSubscription"
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "4.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "B2E1D4C3",
+          "introductoryOffer" : null,
+          "localizations" : [
+            {
+              "description" : "Your reminders as text messages, billed monthly.",
+              "displayName" : "Texts Monthly",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.amgaviationgroup.bluenudge.texts.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Texts Monthly",
+          "subscriptionGroupID" : "7C3E91A0",
+          "type" : "RecurringSubscription"
+        }
+      ]
+    }
+  ],
+  "version" : {
+    "major" : 2,
+    "minor" : 0
+  }
+}

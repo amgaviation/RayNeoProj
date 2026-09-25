@@ -13,3 +13,11 @@ Packages/ReminderCore/Package.resolved
 
 # macOS
 .DS_Store
+
+# Supabase CLI and secrets
+supabase/.temp/
+supabase/.branches/
+.env
+*.env
+!.env.example
+*.p8

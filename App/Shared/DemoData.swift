@@ -6,7 +6,7 @@ import ReminderCore
 /// screenshots and App Store previews. It never touches real data and is only
 /// reachable in Debug builds:
 ///
-///     -BlueNudgeDemo YES [-BlueNudgeScreen today|reminders|editor|activity|settings|onboarding]
+///     -BlueNudgeDemo YES [-BlueNudgeScreen today|reminders|editor|activity|settings|texts|onboarding]
 ///     -BlueNudgeSnapshot <folder>   (Mac relay: write window images there, then quit)
 enum DemoMode {
     static var isEnabled: Bool {
@@ -32,11 +32,26 @@ enum DemoData {
     static let editorReminderTitle = "Drink water"
     static let relayName = "Home Mac mini"
 
-    static func seed(into context: ModelContext) {
+    /// The iPhone shows reminders texted by BlueNudge's server, alarms and
+    /// notifications; the Mac relay shows reminders it texts itself.
+    enum Style {
+        case iPhone, mac
+
+        static var current: Style {
+            #if os(iOS)
+            return .iPhone
+            #else
+            return .mac
+            #endif
+        }
+    }
+
+    static func seed(into context: ModelContext, style: Style = .current) {
         let repository = Repository(context: context)
         let now = Date()
         let calendar = Calendar.current
         let zone = TimeZone.current.identifier
+        let texted: DeliveryMethod = style == .iPhone ? .sms : .relay
 
         func at(_ hour: Int, _ minute: Int = 0, daysFromToday days: Int = 0) -> Date {
             let day = calendar.date(byAdding: .day, value: days, to: calendar.startOfDay(for: now)) ?? now
@@ -45,7 +60,7 @@ enum DemoData {
 
         let settings = SharedSettings()
         settings.defaultCountryCode = "1"
-        settings.defaultMethod = .relay
+        settings.defaultMethod = texted
         context.insert(settings)
 
         let me = Recipient(name: "Me", rawHandle: "(512) 555-0142", handle: "+15125550142")
@@ -56,10 +71,10 @@ enum DemoData {
             _ title: String,
             _ message: String,
             _ schedule: Schedule,
-            _ method: DeliveryMethod = .relay,
+            _ method: DeliveryMethod? = nil,
             activeSince: Date? = nil
         ) -> Reminder {
-            let created = Reminder(title: title, messageTemplate: message, schedule: schedule, recipientIDs: [me.id], method: method)
+            let created = Reminder(title: title, messageTemplate: message, schedule: schedule, recipientIDs: [me.id], method: method ?? texted)
             created.activeSince = activeSince ?? weekAgo
             created.createdAt = weekAgo
             context.insert(created)
@@ -117,7 +132,17 @@ enum DemoData {
             Schedule(frequency: .hourly, start: at(10, 0, daysFromToday: -10), timeZoneIdentifier: zone, activeMinutes: 600...1_020)
         )
         paused.isActive = false
+        if style == .iPhone {
+            _ = reminder(
+                "Evening medication",
+                "Take your evening medication 💊",
+                Schedule(frequency: .daily, start: at(21, 0, daysFromToday: -10), timeZoneIdentifier: zone),
+                .alarm
+            )
+        }
         repository.save()
+
+        guard style == .mac else { return }
 
         // History: every text the relay would have sent over the last few days.
         let history = repository.plan(method: .relay, lookback: 3 * 86_400, grace: 3 * 86_400, now: now)
@@ -137,6 +162,26 @@ enum DemoData {
         context.insert(heartbeat)
 
         repository.save()
+    }
+
+    /// iPhone demo: what BlueNudge's server texted over the last few days,
+    /// newest first.
+    static func texts(repository: Repository, now: Date = Date()) -> [RemoteText] {
+        let history = repository.plan(method: .sms, lookback: 3 * 86_400, grace: 3 * 86_400, now: now)
+        let sent = (history.toSend + history.missed).sorted { $0.occurrence < $1.occurrence }
+        let texts = sent.enumerated().map { index, message in
+            RemoteText(
+                id: index + 1,
+                title: message.reminderTitle,
+                body: message.text,
+                fireAt: message.occurrence,
+                status: "delivered",
+                error: nil,
+                sentAt: message.occurrence.addingTimeInterval(2),
+                source: "app"
+            )
+        }
+        return Array(texts.reversed())
     }
 }
 

@@ -2,34 +2,52 @@ import Foundation
 
 /// How a reminder reaches you.
 public enum DeliveryMethod: String, Codable, CaseIterable, Identifiable, Sendable {
-    /// Texted to your phone as an iMessage by BlueNudge Relay running on a Mac.
-    case relay
-    /// A notification on the iPhone itself. Works without a Mac.
+    /// A text message sent by the BlueNudge server. Needs an account and a
+    /// subscription, but no Mac.
+    case sms
+    /// A full-screen alarm that rings even on silent or in a Focus (iOS 26+).
+    case alarm
+    /// A notification on the iPhone itself. Free, works everywhere.
     case notification
+    /// Texted as an iMessage by BlueNudge Relay running on your own Mac.
+    case relay
 
     public var id: String { rawValue }
 
     public var title: String {
         switch self {
-        case .relay: return "Text me"
-        case .notification: return "Notification only"
+        case .sms: return "Text me"
+        case .alarm: return "Alarm"
+        case .notification: return "Notification"
+        case .relay: return "Text from my Mac"
         }
     }
 
     public var shortTitle: String {
         switch self {
-        case .relay: return "Text"
+        case .sms: return "Text"
+        case .alarm: return "Alarm"
         case .notification: return "Notification"
+        case .relay: return "Mac text"
         }
     }
 
     public var explanation: String {
         switch self {
-        case .relay:
-            return "Arrives in Messages as a text, sent by BlueNudge Relay on your Mac. Free, but the Mac has to stay on."
+        case .sms:
+            return "Arrives as a text message from BlueNudge. Reply SNOOZE to get it again later. Needs a subscription."
+        case .alarm:
+            return "Rings like an alarm, even on silent or in a Focus, until you stop it. Needs iOS 26."
         case .notification:
-            return "A regular notification on this iPhone. Free, no Mac needed, but it isn't a text."
+            return "A regular notification on this iPhone. Free, but easy to swipe away."
+        case .relay:
+            return "Sent as an iMessage by BlueNudge Relay on your Mac. Free, but the Mac has to stay on."
         }
+    }
+
+    /// Methods that run on this device rather than through a server or a Mac.
+    public var isLocal: Bool {
+        self == .alarm || self == .notification
     }
 }
 

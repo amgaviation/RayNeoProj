@@ -59,15 +59,34 @@ extension DeliveryStatus {
 extension DeliveryMethod {
     var symbolName: String {
         switch self {
-        case .relay: return "message.fill"
+        case .sms: return "message.fill"
+        case .alarm: return "alarm.fill"
         case .notification: return "bell.fill"
+        case .relay: return "laptopcomputer"
         }
     }
 
     var tint: Color {
         switch self {
-        case .relay: return .accentColor
+        case .sms: return .green
+        case .alarm: return .red
         case .notification: return .orange
+        case .relay: return .accentColor
+        }
+    }
+
+    /// Methods to offer in pickers on this device. "Text from my Mac" only shows
+    /// once a relay Mac has checked in, or when it's already in use.
+    @MainActor
+    static func available(hasRelay: Bool, including current: DeliveryMethod? = nil) -> [DeliveryMethod] {
+        allCases.filter { method in
+            if method == current { return true }
+            switch method {
+            case .sms: return TextingAccount.shared.isConfigured
+            case .alarm: return AlarmScheduler.isSupported
+            case .notification: return true
+            case .relay: return hasRelay
+            }
         }
     }
 }
