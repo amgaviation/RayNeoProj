@@ -22,6 +22,7 @@ final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCent
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
+        SyncMonitor.shared.start()
         UNUserNotificationCenter.current().delegate = self
         NotificationScheduler.registerCategories()
         // SwiftData's CloudKit sync relies on silent pushes to pick up changes

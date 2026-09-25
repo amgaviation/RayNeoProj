@@ -46,6 +46,7 @@ struct DashboardView: View {
 private struct SetupView: View {
     @ObservedObject private var engine = RelayEngine.shared
     @ObservedObject private var prefs = RelayPreferences.shared
+    @ObservedObject private var sync = SyncMonitor.shared
 
     @State private var loginItemEnabled = LoginItem.isEnabled
     @State private var loginItemError: String?
@@ -105,7 +106,7 @@ private struct SetupView: View {
                 ChecklistRow(
                     title: "Syncing with your iPhone",
                     detail: syncDetail,
-                    state: DataStore.shared.cloudKitContainerID != nil && engine.iCloudAccount == "Signed in" ? .done : .todo
+                    state: DataStore.shared.isSyncConfigured && engine.iCloudAccount == "Signed in" && sync.lastError == nil ? .done : .todo
                 ) {
                     EmptyView()
                 }
@@ -176,10 +177,10 @@ private struct SetupView: View {
     }
 
     private var syncDetail: String {
-        guard DataStore.shared.cloudKitContainerID != nil else {
-            return DataStore.shared.syncStatus.detail
+        guard DataStore.shared.isSyncConfigured else {
+            return DataStore.shared.syncDetail
         }
-        return "iCloud account: \(engine.iCloudAccount). Sign in to iCloud on this Mac with the same Apple Account as the iPhone. New reminders usually arrive within a minute."
+        return "\(sync.summary). iCloud account: \(engine.iCloudAccount). Sign in to iCloud on this Mac with the same Apple Account as the iPhone; new reminders usually arrive within a minute."
     }
 }
 

@@ -44,6 +44,7 @@ delivery record first, which is what prevents duplicates across devices.
 - Today screen: messages ready to send, relay status, late automatic reminders with a "Send from iPhone" fallback, upcoming schedule.
 - Activity log from every device with status (sent, delivered, failed, missed, skipped, opted out), search, and CSV export.
 - Relay: throttling (per-hour cap, gap between messages), grace window for late sends, missed-reminder logging, delivery confirmation, SMS fallback, STOP/START handling with an optional confirmation, heartbeat and automatic single-relay election, keep-awake and open-at-login.
+- iCloud sync status on both devices: last sync time, or the reason it failed (not signed in, storage full, container not set up).
 - Shortcuts actions: *Get Due BlueNudge Messages*, *Mark BlueNudge Message Sent*, *Open BlueNudge Send Queue*.
 
 ## What it costs

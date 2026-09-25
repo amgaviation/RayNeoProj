@@ -21,6 +21,7 @@ final class RelayAppDelegate: NSObject, NSApplicationDelegate {
         // iCloud (CloudKit) pushes tell SwiftData when the iPhone changed something.
         NSApplication.shared.registerForRemoteNotifications()
         Task { @MainActor in
+            SyncMonitor.shared.start()
             ActivityGuard.shared.update(keepAwake: RelayPreferences.shared.keepAwake)
             RelayEngine.shared.start()
             if !RelayPreferences.shared.hasCompletedSetup {

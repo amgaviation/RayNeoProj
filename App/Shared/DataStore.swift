@@ -88,6 +88,25 @@ final class DataStore {
         return nil
     }
 
+    /// True when iCloud sync is running, judged by the configuration or, as a
+    /// fallback, by sync activity actually being reported.
+    var isSyncConfigured: Bool {
+        cloudKitContainerID != nil || SyncMonitor.shared.hasActivity
+    }
+
+    var syncSummary: String {
+        if case .temporary = syncStatus { return syncStatus.summary }
+        return isSyncConfigured ? SyncStatus.iCloud(containerID: "").summary : syncStatus.summary
+    }
+
+    var syncDetail: String {
+        if case .temporary = syncStatus { return syncStatus.detail }
+        if isSyncConfigured {
+            return SyncStatus.iCloud(containerID: cloudKitContainerID ?? "the app's iCloud container").detail
+        }
+        return syncStatus.detail
+    }
+
     private static func inMemoryContainer(schema: Schema) -> ModelContainer {
         let configuration = ModelConfiguration(
             "BlueNudgeTemporary",
@@ -118,9 +137,16 @@ final class DataStore {
     /// Human-readable iCloud account state for status screens. Only touches
     /// CloudKit when the build is entitled, since CloudKit traps otherwise.
     func iCloudAccountDescription() async -> String {
-        guard let id = cloudKitContainerID else { return "Not used by this build" }
+        let container: CKContainer
+        if let id = cloudKitContainerID {
+            container = CKContainer(identifier: id)
+        } else if SyncMonitor.shared.hasActivity {
+            container = CKContainer.default()
+        } else {
+            return "Not used by this build"
+        }
         do {
-            let status = try await CKContainer(identifier: id).accountStatus()
+            let status = try await container.accountStatus()
             switch status {
             case .available: return "Signed in"
             case .noAccount: return "Not signed in to iCloud"

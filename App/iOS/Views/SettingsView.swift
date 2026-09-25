@@ -131,7 +131,10 @@ private struct SettingsForm: View {
             }
 
             Section {
-                LabeledContent("Sync", value: DataStore.shared.syncStatus.summary)
+                LabeledContent("Sync", value: DataStore.shared.syncSummary)
+                if DataStore.shared.isSyncConfigured {
+                    SyncStatusLine()
+                }
                 LabeledContent("iCloud account", value: appState.iCloudAccount)
                 Stepper(value: $settings.logRetentionDays, in: 7...730, step: 7) {
                     LabeledContent("Keep activity for", value: "\(settings.logRetentionDays) days")
@@ -140,7 +143,7 @@ private struct SettingsForm: View {
             } header: {
                 Text("Data")
             } footer: {
-                Text(DataStore.shared.syncStatus.detail)
+                Text(DataStore.shared.syncDetail)
             }
 
             Section("About") {
@@ -284,5 +287,18 @@ struct GuideStep: View {
                 .font(.subheadline)
         }
         .padding(.vertical, 2)
+    }
+}
+
+/// Last iCloud sync, or the reason it failed.
+private struct SyncStatusLine: View {
+    @ObservedObject private var monitor = SyncMonitor.shared
+
+    var body: some View {
+        LabeledContent("iCloud") {
+            Text(monitor.summary)
+                .foregroundStyle(monitor.lastError == nil ? Color.secondary : Color.red)
+                .multilineTextAlignment(.trailing)
+        }
     }
 }
