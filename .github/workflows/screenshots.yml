@@ -90,6 +90,8 @@ jobs:
           if git diff --cached --quiet; then
             echo "Screenshots unchanged."
           else
-            git commit -m "docs: refresh app screenshots"
+            # Images only, so CI is skipped; a bot-triggered CI run would
+            # otherwise sit waiting for approval on the PR.
+            git commit -m "docs: refresh app screenshots [skip ci]"
             git push origin "HEAD:$BRANCH"
           fi
