@@ -6,7 +6,7 @@ import ReminderCore
 /// screenshots and App Store previews. It never touches real data and is only
 /// reachable in Debug builds:
 ///
-///     -BlueNudgeDemo YES [-BlueNudgeScreen today|reminders|editor|activity|settings|texts|onboarding|delivery]
+///     -BlueNudgeDemo YES [-BlueNudgeScreen today|reminders|editor|how|activity|settings|texts|onboarding|delivery]
 ///     -BlueNudgeSnapshot <folder>   (Mac relay: write window images there, then quit)
 enum DemoMode {
     static var isEnabled: Bool {
@@ -30,6 +30,8 @@ enum DemoMode {
 @MainActor
 enum DemoData {
     static let editorReminderTitle = "Drink water"
+    /// A one-time reminder, so the editor's delivery section fits on screen.
+    static let deliveryReminderTitle = "Dentist"
     static let relayName = "Home Mac mini"
 
     /// The iPhone shows reminders texted by BlueNudge's server, alarms and
@@ -108,7 +110,7 @@ enum DemoData {
             Schedule(frequency: .monthly, start: at(9, 0, daysFromToday: 5), timeZoneIdentifier: zone)
         )
         _ = reminder(
-            "Dentist",
+            deliveryReminderTitle,
             "Dentist at 10:30 today. Leave by 10:00 🦷",
             Schedule(frequency: .once, start: at(8, 30, daysFromToday: 1), timeZoneIdentifier: zone)
         )

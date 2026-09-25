@@ -140,7 +140,7 @@ the app tests.
 
 Debug builds have a demo mode with sample data that never touches real data:
 launch the iPhone app with `-BlueNudgeDemo YES -BlueNudgeScreen today`
-(or `reminders`, `editor`, `activity`, `settings`, `texts`, `onboarding`, `delivery`). The
+(or `reminders`, `editor`, `how`, `activity`, `settings`, `texts`, `onboarding`, `delivery`). The
 *Screenshots* workflow captures every screen in the iOS Simulator plus the Mac
 relay's windows and commits them to `docs/screenshots`; run it from the Actions
 tab or add the `screenshots` label to a pull request.

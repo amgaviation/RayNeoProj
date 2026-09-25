@@ -86,6 +86,7 @@ xcrun simctl terminate "$UDID" "$BUNDLE_ID" 2>/dev/null || true
 shoot today today 8
 shoot reminders reminders 7
 shoot editor editor 8
+shoot how editor-how 8
 shoot activity activity 7
 shoot settings settings 7
 shoot texts texts 8

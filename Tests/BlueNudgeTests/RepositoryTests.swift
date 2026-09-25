@@ -234,6 +234,8 @@ final class RepositoryTests: XCTestCase {
         XCTAssertEqual(repository.reminders().count, 9)
         XCTAssertEqual(methods, [.sms, .alarm, .notification])
         XCTAssertEqual(repository.existingSettings()?.defaultMethod, .sms)
+        let dentist = try XCTUnwrap(repository.reminders().first { $0.title == DemoData.deliveryReminderTitle })
+        XCTAssertEqual(dentist.schedule.frequency, .once)
         XCTAssertTrue(repository.heartbeats().isEmpty)
         XCTAssertTrue(repository.deliveries(since: now.addingTimeInterval(-7 * 86_400)).isEmpty)
 

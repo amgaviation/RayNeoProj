@@ -55,13 +55,14 @@ struct RootView: View {
             appState.selectedTab = .activity
         case "settings":
             appState.selectedTab = .settings
-        case "editor":
+        case "editor", "how":
             appState.selectedTab = .reminders
             // Let the tab settle before presenting over it.
             try? await Task.sleep(nanoseconds: 600_000_000)
+            let title = DemoMode.screen == "how" ? DemoData.deliveryReminderTitle : DemoData.editorReminderTitle
             demoEditorReminder = Repository(context: DataStore.shared.mainContext)
                 .reminders()
-                .first { $0.title == DemoData.editorReminderTitle }
+                .first { $0.title == title }
         case "onboarding", "delivery":
             appState.isShowingOnboarding = true
         case "texts":
